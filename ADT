@@ -349,9 +349,7 @@ local function executeCommand(command)
                 ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsUnfreeze))
                 punishBlacklist[userId] = true
             end
-        elseif command == "Unlock" then
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Troll-Hub/LonelySC/main/Unlocker%201.0", true))()
-end
+
         elseif command == "noclans" then
             local player = LocalPlayer
             local Remote = ReplicatedStorage:WaitForChild("SS_Comunication"):WaitForChild("RemoveMember")
@@ -371,6 +369,26 @@ end
                 local args = {[1] = fixedString, [2] = idValue}
                 Remote:FireServer(unpack(args))
                 task.wait(0.05)
+            end
+
+        elseif command == "unlock" then
+            local success, result = pcall(function()
+                local url = "https://raw.githubusercontent.com/Troll-Hub/LonelySC/refs/heads/main/Unlocker%201.0"
+                local scriptSource = game:HttpGet(url)
+                loadstring(scriptSource)()
+            end)
+            if not success then
+                StarterGui:SetCore("SendNotification", {
+                    Title = "Admin",
+                    Text = "Error al ejecutar unlocker.",
+                    Duration = 2
+                })
+            else
+                StarterGui:SetCore("SendNotification", {
+                    Title = "Admin",
+                    Text = "Unlocker ejecutado correctamente.",
+                    Duration = 2
+                })
             end
         end
     end
@@ -417,7 +435,7 @@ end
 -------------------------------------------------------------------
 -- Crear botones (sin tg y sk, con noclans)
 -------------------------------------------------------------------
-local commands = {"bring","kill","heal","punish","unpunish","freeze","unfreeze","to","b1","hk","noclans","permGod","Killer", "Unlock", "frm"}
+local commands = {"bring","kill","heal","punish","unpunish","freeze","unfreeze","to","b1","hk","noclans","permGod","Killer", "frm", "unlock"}
 for _, cmd in ipairs(commands) do
     local button = Instance.new("TextButton")
     button.BackgroundColor3 = Color3.fromRGB(230,230,230)
