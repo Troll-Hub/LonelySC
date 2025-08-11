@@ -382,7 +382,7 @@ local function executeCommand(command)
                 if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
                     local args = {
                         [1] = true,
-                        [2] = LocalPlayer.Character,
+                        [2] = targetlayer.Character,
                         [3] = targetPlayer.Character.HumanoidRootPart.Position,
                         [4] = targetPlayer.Character
                     }
