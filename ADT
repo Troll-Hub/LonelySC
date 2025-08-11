@@ -86,7 +86,7 @@ InputFrame.Position = UDim2.new(0, 0, 0, 0)
 InputFrame.BackgroundTransparency = 1
 InputFrame.Parent = ContentFrame
 
-local InputBox = Instance.new("Textbox")
+local InputBox = Instance.new("TextBox")
 InputBox.Size = UDim2.new(0.9, 0, 0, 16)
 InputBox.Position = UDim2.new(0.05, 0, 0.1, 0)
 InputBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -97,7 +97,7 @@ uiGradientInput.Color = ColorSequence.new({
 })
 uiGradientInput.Rotation = 45
 uiGradientInput.Parent = InputBox
-InputBox.TextColor3 = Color3.fromRGB(255, 255, 0)
+InputBox.TextColor3 = Color3.fromRGB(255, 0, 255)
 InputBox.TextScaled = true
 InputBox.PlaceholderText = "???"
 InputBox.Parent = InputFrame
@@ -392,7 +392,7 @@ local function executeCommand(command)
                     StarterGui:SetCore("SendNotification", {
                         Title = "Admin",
                         Text = "Jugador " .. targetPlayer.Name .. " sin HumanoidRootPart.",
-                        Duration = 1
+                        Duration = 0.1
                     })
                 end
             end
@@ -426,13 +426,13 @@ local function spawnParticleEffect(button)
         particle.Size = UDim2.new(0, 6, 0, 6)
         particle.Position = UDim2.new(0.5, 0, 0.5, 0)
         particle.AnchorPoint = Vector2.new(0.5, 0.5)
-        particle.BackgroundTransparency = 0
+        particle.BackgroundTransparency = 1
         particle.Image = "rbxassetid://2795790"
         particle.ImageColor3 = Color3.new(math.random(), math.random(), math.random())
         particle.Parent = button
         local randomOffset = UDim2.new(0, math.random(-20,20), 0, math.random(-20,20))
         local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        local tween = TweenService:Create(particle, tweenInfo, {Position = randomOffset, ImageTransparency = 1})
+        local tween = TweenService:Create(particle, tweenInfo, {Position = randomOffset, ImageTransparency = 0})
         tween:Play()
         tween.Completed:Connect(function() particle:Destroy() end)
     end
