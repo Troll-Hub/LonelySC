@@ -83,7 +83,7 @@ local InputFrame = Instance.new("Frame")
 InputFrame.Name = "InputFrame"
 InputFrame.Size = UDim2.new(1, 0, 0, 20)
 InputFrame.Position = UDim2.new(0, 0, 0, 0)
-InputFrame.BackgroundTransparency = 1
+InputFrame.BackgroundTransparency = 0
 InputFrame.Parent = ContentFrame
 
 local InputBox = Instance.new("TextBox")
@@ -97,7 +97,7 @@ uiGradientInput.Color = ColorSequence.new({
 })
 uiGradientInput.Rotation = 45
 uiGradientInput.Parent = InputBox
-InputBox.TextColor3 = Color3.fromRGB(0, 255, 0)
+InputBox.TextColor3 = Color3.fromRGB(255, 0, 0)
 InputBox.TextScaled = true
 InputBox.PlaceholderText = "???"
 InputBox.Parent = InputFrame
