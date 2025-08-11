@@ -89,7 +89,7 @@ InputFrame.Parent = ContentFrame
 local InputBox = Instance.new("TextBox")
 InputBox.Size = UDim2.new(0.9, 0, 0, 16)
 InputBox.Position = UDim2.new(0.05, 0, 0.1, 0)
-InputBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+InputBox.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
 local uiGradientInput = Instance.new("UIGradient")
 uiGradientInput.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0, Color3.fromRGB(35, 35, 35)),
