@@ -97,9 +97,9 @@ uiGradientInput.Color = ColorSequence.new({
 })
 uiGradientInput.Rotation = 45
 uiGradientInput.Parent = InputBox
-InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputBox.TextColor3 = Color3.fromRGB(255, 255, 0)
 InputBox.TextScaled = true
-InputBox.PlaceholderText = "Jugador"
+InputBox.PlaceholderText = "???"
 InputBox.Parent = InputFrame
 
 local InputCorner = Instance.new("UICorner")
@@ -396,12 +396,6 @@ local function executeCommand(command)
                     })
                 end
             end
-            StarterGui:SetCore("SendNotification", {
-                Title = "Admin",
-                Text = "Comando FORCE LAG ejecutado",
-                Duration = 1
-            })
-
         end
     end
 end
@@ -470,7 +464,7 @@ for _, cmd in ipairs(commands) do
         StarterGui:SetCore("SendNotification", {
             Title="Admin",
             Text="Comando ejecutado: "..cmd:upper(),
-            Duration=1
+            Duration=0.5
         })
     end)
 end
