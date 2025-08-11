@@ -372,24 +372,36 @@ local function executeCommand(command)
             end
 
         elseif command == "unlock" then
-            local success, result = pcall(function()
-                local url = "https://raw.githubusercontent.com/Troll-Hub/LonelySC/refs/heads/main/Unlocker%201.0"
-                local scriptSource = game:HttpGet(url)
-                loadstring(scriptSource)()
-            end)
-            if not success then
-                StarterGui:SetCore("SendNotification", {
-                    Title = "Admin",
-                    Text = "Error al ejecutar unlocker.",
-                    Duration = 2
-                })
-            else
-                StarterGui:SetCore("SendNotification", {
-                    Title = "Admin",
-                    Text = "Unlocker ejecutado correctamente.",
-                    Duration = 2
-                })
+            -- Nuevo comando unlock con loadstring
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Troll-Hub/LonelySC/refs/heads/main/Unlocker%201.0"))()
+
+        elseif command == "forcelag" then
+            -- Nuevo comando Force Lag con detección de nombres y posición dinámica
+            local targetPlayersForForceLag = getPlayers(target)
+            for _, targetPlayer in ipairs(targetPlayersForForceLag) do
+                if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    local args = {
+                        [1] = true,
+                        [2] = LocalPlayer.Character,
+                        [3] = targetPlayer.Character.HumanoidRootPart.Position,
+                        [4] = targetPlayer.Character
+                    }
+
+                    ReplicatedStorage._BindableEvents.Moves.BreakStorm:FireServer(unpack(args))
+                else
+                    StarterGui:SetCore("SendNotification", {
+                        Title = "Admin",
+                        Text = "Jugador " .. targetPlayer.Name .. " sin HumanoidRootPart.",
+                        Duration = 2
+                    })
+                end
             end
+            StarterGui:SetCore("SendNotification", {
+                Title = "Admin",
+                Text = "Comando FORCE LAG ejecutado",
+                Duration = 2
+            })
+
         end
     end
 end
@@ -435,7 +447,7 @@ end
 -------------------------------------------------------------------
 -- Crear botones (sin tg y sk, con noclans)
 -------------------------------------------------------------------
-local commands = {"bring","kill","heal","punish","unpunish","freeze","unfreeze","to","b1","hk","noclans","permGod","Killer", "frm", "unlock"}
+local commands = {"bring","kill","heal","punish","unpunish","freeze","unfreeze","to","b1","hk","noclans","permGod","Killer", "frm", "unlock", "forcelag"}
 for _, cmd in ipairs(commands) do
     local button = Instance.new("TextButton")
     button.BackgroundColor3 = Color3.fromRGB(230,230,230)
