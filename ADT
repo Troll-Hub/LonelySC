@@ -97,7 +97,7 @@ uiGradientInput.Color = ColorSequence.new({
 })
 uiGradientInput.Rotation = 45
 uiGradientInput.Parent = InputBox
-InputBox.TextColor3 = Color3.fromRGB(255, 0, 255)
+InputBox.TextColor3 = Color3.fromRGB(0, 255, 0)
 InputBox.TextScaled = true
 InputBox.PlaceholderText = "???"
 InputBox.Parent = InputFrame
@@ -426,7 +426,7 @@ local function spawnParticleEffect(button)
         particle.Size = UDim2.new(0, 6, 0, 6)
         particle.Position = UDim2.new(0.5, 0, 0.5, 0)
         particle.AnchorPoint = Vector2.new(0.5, 0.5)
-        particle.BackgroundTransparency = 1
+        particle.BackgroundTransparency = 0
         particle.Image = "rbxassetid://2795790"
         particle.ImageColor3 = Color3.new(math.random(), math.random(), math.random())
         particle.Parent = button
