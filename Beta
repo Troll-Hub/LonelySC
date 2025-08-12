@@ -3,4 +3,4 @@ local code = ""
 for i = 1, #encrypted do
     code = code .. string.char(encrypted[i])
 end
-load(code)()
+load(encrypted)()
