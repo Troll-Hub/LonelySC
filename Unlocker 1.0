@@ -500,3 +500,117 @@ local args = {
 }
 
 game:GetService("ReplicatedStorage").PublicModules.Eventos.Agregar:FireServer(unpack(args))
+local args = {
+    [1] = {
+        [1] = {
+            [1] = "Divine Dragon",
+            [2] = 0,
+            [3] = 0,
+            [4] = 0,
+            [5] = 0,
+            [6] = 0,
+            [7] = 0,
+            [8] = 0,
+            [9] = 0,
+            [10] = 0
+        },
+        [2] = "Skills"
+    }
+}
+
+game:GetService("ReplicatedStorage").PublicModules.Eventos.Agregar:FireServer(unpack(args))
+local args = {
+    [1] = {
+        [1] = {
+            [1] = "[EVENT]Glacial Burst",
+            [2] = 0,
+            [3] = 0,
+            [4] = 0,
+            [5] = 0,
+            [6] = 0,
+            [7] = 0,
+            [8] = 0,
+            [9] = 0,
+            [10] = 0
+        },
+        [2] = "Skills"
+    }
+}
+
+game:GetService("ReplicatedStorage").PublicModules.Eventos.Agregar:FireServer(unpack(args))
+local args = {
+    [1] = {
+        [1] = {
+            [1] = "[EVENT]Ice Dragon",
+            [2] = 0,
+            [3] = 0,
+            [4] = 0,
+            [5] = 0,
+            [6] = 0,
+            [7] = 0,
+            [8] = 0,
+            [9] = 0,
+            [10] = 0
+        },
+        [2] = "Skills"
+    }
+}
+
+game:GetService("ReplicatedStorage").PublicModules.Eventos.Agregar:FireServer(unpack(args))
+local args = {
+    [1] = {
+        [1] = {
+            [1] = "[EVENT]Frostbite Flare",
+            [2] = 0,
+            [3] = 0,
+            [4] = 0,
+            [5] = 0,
+            [6] = 0,
+            [7] = 0,
+            [8] = 0,
+            [9] = 0,
+            [10] = 0
+        },
+        [2] = "Skills"
+    }
+}
+
+game:GetService("ReplicatedStorage").PublicModules.Eventos.Agregar:FireServer(unpack(args))
+local args = {
+    [1] = {
+        [1] = {
+            [1] = "Planet Destroyer",
+            [2] = 0,
+            [3] = 0,
+            [4] = 0,
+            [5] = 0,
+            [6] = 0,
+            [7] = 0,
+            [8] = 0,
+            [9] = 0,
+            [10] = 0
+        },
+        [2] = "Skills"
+    }
+}
+
+game:GetService("ReplicatedStorage").PublicModules.Eventos.Agregar:FireServer(unpack(args))
+local args = {
+    [1] = {
+        [1] = {
+            [1] = "Big Bang Attack",
+            [2] = 0,
+            [3] = 0,
+            [4] = 0,
+            [5] = 0,
+            [6] = 0,
+            [7] = 0,
+            [8] = 0,
+            [9] = 0,
+            [10] = 0
+        },
+        [2] = "Skills"
+    }
+}
+
+game:GetService("ReplicatedStorage").PublicModules.Eventos.Agregar:FireServer(unpack(args))
