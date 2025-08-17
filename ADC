@@ -1,327 +1,153 @@
-------------------------------------------------------------
--- ADMIN RANKER – SISTEMA DE COMANDOS (SIN INTERFAZ)
--- Se ejecuta directamente y escucha el chat de TODOS los jugadores.
--- Los comandos procesados son:
---   /bring, /kill, /heal, /god, /killer, /punish, /unpunish,
---   /freeze, /unfreeze, /b, /to, /rank, /unrank, /aboveadmin, /unabove, /fs, /cmds
-------------------------------------------------------------
+-- LocalScript para entornos tipo KRNL / Executor
+-- Rework del ADC: usa npc/ para NPCs, verificador NPC/Player, matching flexible para NPCs
 
--- Servicios
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+local StarterGui = game:GetService("StarterGui")
 
-------------------------------------------------------------
--- CONFIGURACIÓN Y TABLAS DE CONTROL
-------------------------------------------------------------
-local roles = {}       -- roles: "owner", "admin" o "above"
-local adminUsage = {}  -- adminUsage[adminId][cmd][targetId] = {timestamps}
+local LocalPlayer = Players.LocalPlayer
+
+-- TABLAS / CONFIG
+local roles = {}               -- roles: "owner", "admin"
+local adminUsage = {}
 local ABUSE_THRESHOLD = 3
 local ABUSE_TIMEFRAME = 60
 local ABUSE_PUNISH_DURATION = 30
-
--- Blacklist para efectos de punish (para jugadores usamos UserId)
-local punishBlacklist = {}
-
--- Tabla global para focos permanentes en /fs (clave: admin.UserId .. '_' .. searchTerm)
+local punishBlacklist = {}     -- para punish (players por UserId, NPCs por nombre)
 _G.focusLoops = _G.focusLoops or {}
 
-------------------------------------------------------------
--- ASIGNAR ROL: el primer jugador que se encuentre es Owner
-------------------------------------------------------------
-local function assignOwner()
-    for _, p in ipairs(Players:GetPlayers()) do
-        roles[p.UserId] = "owner"
-        print("Admin Ranker: " .. p.Name .. " es Owner.")
-        break
-    end
-end
-assignOwner()
-Players.PlayerAdded:Connect(function(p)
-    if not next(roles) then
-        roles[p.UserId] = "owner"
-        print("Admin Ranker: " .. p.Name .. " es Owner.")
-    end
-end)
-print("Admin Ranker cargado y en funcionamiento.")
+-- LISTA DE COMANDOS
+local ALL_COMMANDS = {
+    ".bring", ".kill", ".heal", ".god", ".killer", ".punish", ".unpunish",
+    ".freeze", ".unfreeze", ".b", ".to", ".rank", ".unrank", ".fs", ".cmds"
+}
 
-------------------------------------------------------------
--- FUNCIONES AUXILIARES PARA BUSCAR TARGETS
-------------------------------------------------------------
--- Para jugadores: interpreta "me", "others" y "all" de la siguiente forma:
---   "me": target es el admin que ejecuta el comando.
---   "others": target son todos los jugadores (excepto el admin) que NO tengan rol "owner" o "above".
---   "all": target son todos los jugadores, excluyendo a "owner" o "above".
+-- NOTIFICACIONES (sin prints)
+local function notify(title, text, duration)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = title or "Admin";
+            Text = text or "";
+            Duration = duration or 4;
+        })
+    end)
+end
+
+-- Owner = LocalPlayer (solo él puede rank/unrank)
+roles[LocalPlayer.UserId] = "owner"
+notify("Admin Ranker", LocalPlayer.Name .. " es Owner (LocalPlayer).", 3)
+
+-- UTIL: trim + lower para normalizar cadenas
+local function normalizeString(s)
+    if not s then return "" end
+    s = tostring(s)
+    -- quitar espacios al inicio/fin
+    s = s:match("^%s*(.-)%s*$") or s
+    return string.lower(s)
+end
+
+-- UTIL: unir args desde índice i hasta el final (para nombres con espacios)
+local function joinArgs(args, i)
+    i = i or 1
+    if i > #args then return "" end
+    local t = {}
+    for j = i, #args do table.insert(t, args[j]) end
+    return table.concat(t, " ")
+end
+
+-- UTIL: Buscar players por "all", "others", "me" o por coincidencia parcial (case-insensitive y trim)
 local function getPlayers(target, sender)
-    local lowerTarget = string.lower(target)
+    target = target or ""
+    local lowerTarget = normalizeString(target)
     local matchedPlayers = {}
+
     if lowerTarget == "all" then
         for _, p in ipairs(Players:GetPlayers()) do
-            if not (roles[p.UserId] == "owner" or roles[p.UserId] == "above") then
+            if not (roles[p.UserId] == "owner") then
                 table.insert(matchedPlayers, p)
             end
         end
     elseif lowerTarget == "others" then
         for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= sender and not (roles[p.UserId] == "owner" or roles[p.UserId] == "above") then
+            if p ~= sender and not (roles[p.UserId] == "owner") then
                 table.insert(matchedPlayers, p)
             end
         end
     elseif lowerTarget == "me" then
-        matchedPlayers = {sender}
+        table.insert(matchedPlayers, sender)
     else
         for _, p in ipairs(Players:GetPlayers()) do
-            local nameLower = string.lower(p.Name)
-            local displayLower = string.lower(p.DisplayName or p.Name)
-            if nameLower:find(lowerTarget, 1, true) or displayLower:find(lowerTarget, 1, true) then
+            local nameLower = normalizeString(p.Name)
+            local displayLower = normalizeString(p.DisplayName or p.Name)
+            -- Buscamos coincidencia parcial en cualquiera de los dos campos
+            if lowerTarget ~= "" and (nameLower:find(lowerTarget, 1, true) or displayLower:find(lowerTarget, 1, true)) then
                 table.insert(matchedPlayers, p)
             end
         end
     end
+
     return matchedPlayers
 end
 
--- Para NPCs: la entrada debe comenzar con "npc." y se usa búsqueda literal para detectar coincidencias parciales (acepta espacios)
-local function getNPCsByName(inputText)
+-- UTIL: Buscar NPCs por prefijo "npc/" y matching parcial sin case.
+-- Soporta: npc/all, npc/Nombre Parcial
+local function getNPCs(target)
+    target = tostring(target or "")
+    local lowerTarget = normalizeString(target)
     local targets = {}
-    local lowerInput = string.lower(inputText)
-    if string.sub(lowerInput, 1, 4) == "npc." then
-        local searchTerm = string.sub(lowerInput, 5):gsub("^%s*(.-)%s*$", "%1")  -- quita espacios
+
+    -- Se espera que quien llame ya haya validado que el input tenga prefijo "npc/"
+    -- Aquí recibimos la parte posterior al prefijo o la entrada completa que empieza por npc/...
+    -- Si vienen "npc/all" o solo "all" dentro de la parte posterior, devolvemos todos los NPCs.
+    -- Extraemos término de búsqueda si viene con el prefijo.
+    if lowerTarget == "npc/" then
+        -- sin término -> vacío, devolvemos ninguno
+        return targets
+    end
+
+    -- Si viniera la forma completa "npc/..." separamos
+    local searchTerm = lowerTarget
+    if string.sub(lowerTarget, 1, 4) == "npc/" then
+        searchTerm = string.sub(lowerTarget, 5)
+    end
+    searchTerm = searchTerm:gsub("^%s*(.-)%s*$", "%1")
+
+    if searchTerm == "all" or searchTerm == "" then
+        -- devolver todos los modelos que tengan Humanoid
         for _, obj in ipairs(Workspace:GetDescendants()) do
             if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") then
-                if string.find(string.lower(obj.Name), searchTerm, 1, true) then
-                    table.insert(targets, obj)
-                end
+                table.insert(targets, obj)
             end
         end
-    else
-        print("Target inválido. Para NPCs, la entrada debe iniciar con 'npc.'")
+        return targets
     end
+
+    -- búsqueda parcial por nombre (sin case)
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") then
+            if normalizeString(obj.Name):find(searchTerm, 1, true) then
+                table.insert(targets, obj)
+            end
+        end
+    end
+
     return targets
 end
 
-------------------------------------------------------------
--- FUNCIONES DE COMANDO (para jugadores)
-------------------------------------------------------------
-local function bring(admin, target)
-    if target.Character and target.Character.PrimaryPart and admin.Character and admin.Character.PrimaryPart then
-        local argsTrue = {true, target.Character, admin.Character.PrimaryPart.CFrame}
-        ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsTrue))
-        local argsFalse = {false, target.Character}
-        ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsFalse))
-        print("[" .. admin.Name .. "]: Usó /bring en " .. target.Name)
-    end
+-- UTIL: identificar si input indica un NPC (usa "npc/" como prefijo obligatorio)
+local function isNPCInput(rawInput)
+    if not rawInput then return false end
+    local s = normalizeString(tostring(rawInput))
+    return string.sub(s, 1, 4) == "npc/"
 end
 
-local function kill(admin, target)
-    if target.Character and target.Character:FindFirstChildOfClass("Humanoid") then
-        local args = {target.Character:FindFirstChildOfClass("Humanoid"), 1e111, admin}
-        ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(unpack(args))
-        print("[" .. admin.Name .. "]: Usó /kill en " .. target.Name)
-    end
-end
-
-local function heal(admin, target)
-    if target.Character and target.Character:FindFirstChildOfClass("Humanoid") then
-        local args = {target.Character:FindFirstChildOfClass("Humanoid"), -1e9, admin}
-        ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(unpack(args))
-        print("[" .. admin.Name .. "]: Usó /heal en " .. target.Name)
-    end
-end
-
-local function god(admin, target)
-    if target.Character and target.Character:FindFirstChildOfClass("Humanoid") then
-        local healArgs = {target.Character:FindFirstChildOfClass("Humanoid"), -1e111, admin}
-        ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(unpack(healArgs))
-        local killArgs = {target.Character:FindFirstChildOfClass("Humanoid"), 1e111, admin}
-        ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(unpack(killArgs))
-        print("[" .. admin.Name .. "]: Usó /god en " .. target.Name)
-    end
-end
-
-local function killer(admin, target)
-    if target.Character then
-        local argsPunish = {true, target.Character, CFrame.new(math.huge, math.huge, math.huge)}
-        ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsPunish))
-        local argsUnfreeze = {false, target.Character}
-        ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsUnfreeze))
-        punishBlacklist[target.UserId] = true
-        print("[" .. admin.Name .. "]: Usó /killer en " .. target.Name)
-    end
-end
-
-local function punish(admin, target)
-    if target.Character then
-        local uid = target.UserId
-        if not punishBlacklist[uid] then
-            punishBlacklist[uid] = true
-            spawn(function()
-                local startTime = tick()
-                while punishBlacklist[uid] and (tick() - startTime) < 60 do
-                    local argsPunish = {true, target.Character, CFrame.new(math.huge, math.huge, math.huge)}
-                    ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsPunish))
-                    wait(0.1)
-                end
-            end)
-            print("[" .. admin.Name .. "]: Usó /punish en " .. target.Name)
-        end
-    end
-end
-
-local function unpunish(admin, target)
-    local uid = target.UserId
-    if punishBlacklist[uid] then
-        punishBlacklist[uid] = nil
-        if target.Character then
-            local argsTrue = {true, target.Character, admin.Character and admin.Character.PrimaryPart.CFrame or CFrame.new(0,0,0)}
-            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsTrue))
-            local argsFalse = {false, target.Character}
-            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsFalse))
-        end
-        print("[" .. admin.Name .. "]: Usó /unpunish en " .. target.Name)
-    end
-end
-
-local function freeze(admin, target)
-    if target.Character and target.Character.PrimaryPart then
-        local argsFreeze = {true, target.Character, target.Character.PrimaryPart.CFrame}
-        ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsFreeze))
-        print("[" .. admin.Name .. "]: Usó /freeze en " .. target.Name)
-    end
-end
-
-local function unfreeze(admin, target)
-    if target.Character then
-        local argsUnfreeze = {false, target.Character}
-        ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsUnfreeze))
-        print("[" .. admin.Name .. "]: Usó /unfreeze en " .. target.Name)
-    end
-end
-
-local function to(admin, target)
-    if admin.Character and admin.Character.PrimaryPart and target.Character and target.Character.PrimaryPart then
-        local cf = target.Character.PrimaryPart.CFrame
-        local argsTrue = {true, admin.Character, cf}
-        ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsTrue))
-        local argsFalse = {false, admin.Character}
-        ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsFalse))
-        print("[" .. admin.Name .. "]: Usó /to hacia " .. target.Name)
-    end
-end
-
-local function b(admin, target)
-    if roles[admin.UserId] == "above" or roles[admin.UserId] == "owner" then
-        local dbPart = Workspace:FindFirstChild("Map") 
-                      and Workspace.Map:FindFirstChild("DBS") 
-                      and Workspace.Map.DBS:FindFirstChild("DB") 
-                      and Workspace.Map.DBS.DB:FindFirstChild("DB1")
-        if dbPart and target.Character then
-            local argsTrue = {true, target.Character, dbPart.CFrame}
-            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsTrue))
-            local argsFalse = {false, target.Character}
-            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsFalse))
-            print("[" .. admin.Name .. "]: Usó /b en " .. target.Name)
-        else
-            print("[" .. admin.Name .. "]: DB1 no encontrado o target sin Character.")
-        end
-    else
-        print("[" .. admin.Name .. "]: No tienes permiso para usar /b.")
-    end
-end
-
-------------------------------------------------------------
--- COMANDO /fs (FOCUS PERMANENTE PARA NPCs)
--- Se ejecuta solo si la entrada comienza con "npc." (ej: /fs npc.whis)
--- Se busca un NPC cuyo nombre contenga el término y se inicia un loop permanente
--- que monitorea su salud; si varía en al menos 1, se ejecuta kill sobre él.
-------------------------------------------------------------
-local function fs(admin, targetInput)
-    local fsTerm = string.match(string.lower(targetInput), "^npc%.(.+)$")
-    if not fsTerm then
-        print("[" .. admin.Name .. "]: Uso incorrecto. Usa /fs npc.NombreDelNPC")
-        return
-    end
-    fsTerm = fsTerm:gsub("^%s*(.-)%s*$", "%1")  -- quitar espacios
-    local key = admin.UserId .. "_" .. fsTerm
-    if _G.focusLoops[key] then
-        print("[" .. admin.Name .. "]: Ya existe un Focus permanente para '" .. fsTerm .. "'.")
-        return
-    end
-    _G.focusLoops[key] = true
-    print("[" .. admin.Name .. "]: Focus permanente iniciado para NPC que contenga '" .. fsTerm .. "'.")
-    spawn(function()
-        while _G.focusLoops[key] do
-            local foundNpc = nil
-            for _, obj in ipairs(Workspace:GetDescendants()) do
-                if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") then
-                    if string.find(string.lower(obj.Name), fsTerm, 1, true) then
-                        foundNpc = obj
-                        break
-                    end
-                end
-            end
-            if foundNpc then
-                local humanoid = foundNpc:FindFirstChildOfClass("Humanoid")
-                local previousHealth = humanoid.Health
-                while foundNpc and foundNpc.Parent and _G.focusLoops[key] do
-                    local currentHealth = humanoid.Health
-                    if math.abs(currentHealth - previousHealth) >= 1 then
-                        local argsKill = {humanoid, 1e111, admin}
-                        ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(unpack(argsKill))
-                        print("[" .. admin.Name .. "]: NPC " .. foundNpc.Name .. " killado por cambio de vida (Focus permanente).")
-                    end
-                   	previousHealth = currentHealth
-                    wait(0.1)
-                end
-            else
-                wait(1)
-            end
-        end
-        print("[" .. admin.Name .. "]: Focus permanente finalizado para término '" .. fsTerm .. "'.")
-    end)
-end
-
-------------------------------------------------------------
--- GESTIÓN DE ROLES: /rank, /unrank, /aboveadmin, /unabove
-------------------------------------------------------------
-local function rank(admin, target)
-    if not roles[target.UserId] then
-        roles[target.UserId] = "admin"
-        print(target.Name .. " ha sido promovido a Admin.")
-    else
-        print(target.Name .. " ya tiene rol (" .. roles[target.UserId] .. ").")
-    end
-end
-
-local function unrank(admin, target)
-    if roles[target.UserId] then
-        roles[target.UserId] = nil
-        print(target.Name .. " ha sido removido del admin list.")
-    else
-        print(target.Name .. " no estaba en el admin list.")
-    end
-end
-
-local function aboveadmin(admin, target)
-    roles[target.UserId] = "above"
-    print(target.Name .. " ha sido promovido a Aboveadmin.")
-end
-
-local function unabove(admin, target)
-    roles[target.UserId] = "admin"
-    print(target.Name .. " ha sido removido de Aboveadmin y ahora es Admin.")
-end
-
-------------------------------------------------------------
--- Detección de abuso (solo para Admin; Aboveadmin y Owner exentos)
-------------------------------------------------------------
+-- REGISTRO DE USOS (detección de abuso)
 local function registerCommandUsage(admin, cmd, target)
-    if roles[admin.UserId] ~= "admin" then
-        return false
-    end
+    if roles[admin.UserId] ~= "admin" then return false end
     adminUsage[admin.UserId] = adminUsage[admin.UserId] or {}
     adminUsage[admin.UserId][cmd] = adminUsage[admin.UserId][cmd] or {}
-    local targetId = target.UserId or target.Name
+    local targetId = tostring((type(target) == "table" and (target.UserId or target.Name)) or target)
     adminUsage[admin.UserId][cmd][targetId] = adminUsage[admin.UserId][cmd][targetId] or {}
     local usageList = adminUsage[admin.UserId][cmd][targetId]
     local now = tick()
@@ -335,247 +161,459 @@ local function registerCommandUsage(admin, cmd, target)
 end
 
 local function punishAbusiveAdmin(admin)
+    if not admin then return end
     if admin.Character and admin.Character:FindFirstChild("Humanoid") then
-        local argsPunish = {true, admin.Character, CFrame.new(math.huge, math.huge, math.huge)}
-        ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsPunish))
-        print("Admin " .. admin.Name .. " abusó de comandos. Castigado por " .. ABUSE_PUNISH_DURATION .. " segundos y perderá sus permisos.")
+        pcall(function()
+            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(true, admin.Character, CFrame.new(math.huge, math.huge, math.huge))
+        end)
+        notify("Admin Ranker", "Admin "..admin.Name.." abusó de comandos. Castigado temporalmente.", 5)
         delay(ABUSE_PUNISH_DURATION, function()
             if admin.Character then
-                local argsUnfreeze = {false, admin.Character}
-                ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsUnfreeze))
+                pcall(function()
+                    ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(false, admin.Character)
+                end)
             end
             roles[admin.UserId] = nil
-            print("Admin " .. admin.Name .. " perdió permisos por abuso.")
+            notify("Admin Ranker", "Admin "..admin.Name.." perdió permisos por abuso.", 4)
         end)
     end
 end
 
-------------------------------------------------------------
--- PROCESAMIENTO DE COMANDOS POR CHAT (para TODOS los jugadores)
-------------------------------------------------------------
-local function processAdminCommand(admin, message)
-    if string.sub(message,1,1) ~= "/" then return end
-    local role = roles[admin.UserId]
-    if not role then return end
-    local args = {}
-    for word in message:gmatch("%S+") do
-        table.insert(args, word)
+-- FUNCIONES DE COMANDOS (players)
+local function bring(admin, target)
+    if not (target and admin) then return end
+    if target.Character and target.Character.PrimaryPart and admin.Character and admin.Character.PrimaryPart then
+        pcall(function()
+            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(true, target.Character, admin.Character.PrimaryPart.CFrame)
+            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(false, target.Character)
+        end)
+        notify("Bring", admin.Name.." trajo a "..target.Name, 3)
     end
+end
+
+local function kill(admin, target)
+    if not (target and admin) then return end
+    local humanoid = target.Character and target.Character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        pcall(function()
+            ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(humanoid, 1e111, admin)
+        end)
+        notify("Kill", admin.Name.." mató a "..target.Name, 3)
+    end
+end
+
+local function heal(admin, target)
+    if not (target and admin) then return end
+    local humanoid = target.Character and target.Character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        pcall(function()
+            ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(humanoid, -1e9, admin)
+        end)
+        notify("Heal", admin.Name.." sanó a "..target.Name, 3)
+    end
+end
+
+local function god(admin, target)
+    if not (target and admin) then return end
+    local humanoid = target.Character and target.Character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        pcall(function()
+            ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(humanoid, -1e111, admin)
+            ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(humanoid, 1e111, admin)
+        end)
+        notify("God", admin.Name.." aplicó god a "..target.Name, 3)
+    end
+end
+
+local function killer(admin, target)
+    if not (target and admin) then return end
+    if target.Character then
+        pcall(function()
+            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(true, target.Character, CFrame.new(math.huge, math.huge, math.huge))
+            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(false, target.Character)
+        end)
+        punishBlacklist[target.UserId] = true
+        notify("Killer", admin.Name.." usó killer en "..target.Name, 3)
+    end
+end
+
+-- FUNC: intento robusto de aplicar punish (usa StopEnemy y si falla fuerza PrimaryPart)
+local function applyPunishToModel(admin, model)
+    if not model then return end
+    local uid = model.Name or tostring(model)
+    punishBlacklist[uid] = true
+    -- lanzamos loop que intenta mantener al target en coordenadas absurdas
+    spawn(function()
+        local startTime = tick()
+        while punishBlacklist[uid] and (tick() - startTime) < 60 do
+            pcall(function()
+                -- preferimos usar StopEnemy (si existe)
+                ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(true, model, CFrame.new(math.huge, math.huge, math.huge))
+            end)
+            -- fallback: intentar mover primarypart (por si StopEnemy no funciona en este entorno)
+            pcall(function()
+                if model.PrimaryPart then
+                    model:SetPrimaryPartCFrame(CFrame.new(1e6, 1e6, 1e6))
+                else
+                    local hrp = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso") or model:FindFirstChild("UpperTorso")
+                    if hrp and hrp:IsA("BasePart") then
+                        hrp.CFrame = CFrame.new(1e6,1e6,1e6)
+                    end
+                end
+            end)
+            wait(0.1)
+        end
+        -- intento de limpieza al terminar loop
+        pcall(function()
+            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(false, model)
+        end)
+    end)
+end
+
+local function punishPlayer(admin, target)
+    if not (target and admin) then return end
+    if target.Character then
+        applyPunishToModel(admin, target.Character)
+        notify("Punish", admin.Name.." punishó a "..target.Name, 3)
+    end
+end
+
+local function unpunishPlayer(admin, target)
+    if not (target and admin) then return end
+    local uid = target.UserId
+    if punishBlacklist[uid] then
+        punishBlacklist[uid] = nil
+        if target.Character then
+            pcall(function()
+                ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(false, target.Character)
+            end)
+        end
+        notify("Unpunish", admin.Name.." removió punish a "..target.Name, 3)
+    else
+        notify("Unpunish", target.Name.." no estaba punishado.", 3)
+    end
+end
+
+local function freeze(admin, target)
+    if not (target and admin) then return end
+    if target.Character and target.Character.PrimaryPart then
+        pcall(function()
+            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(true, target.Character, target.Character.PrimaryPart.CFrame)
+        end)
+        notify("Freeze", admin.Name.." congeló a "..target.Name, 3)
+    end
+end
+
+local function unfreeze(admin, target)
+    if not (target and admin) then return end
+    if target.Character then
+        pcall(function()
+            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(false, target.Character)
+        end)
+        notify("Unfreeze", admin.Name.." descongeló a "..target.Name, 3)
+    end
+end
+
+local function toCommand(admin, target)
+    if not (target and admin) then return end
+    if admin.Character and admin.Character.PrimaryPart and target.Character and target.Character.PrimaryPart then
+        local cf = target.Character.PrimaryPart.CFrame
+        pcall(function()
+            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(true, admin.Character, cf)
+            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(false, admin.Character)
+        end)
+        notify("To", admin.Name.." se movió a "..target.Name, 3)
+    end
+end
+
+-- BUSCAR DB1 robusto (recursivo por nombre)
+local function findDB1()
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and normalizeString(obj.Name) == "db1" then
+            return obj
+        end
+    end
+    return nil
+end
+
+local function bCommand(admin, target)
+    if not (target and admin) then return end
+    -- Permiso: Solo Owner puede usar .b
+    if roles[admin.UserId] ~= "owner" then
+        notify("B", "No tienes permiso para usar .b", 4)
+        return
+    end
+    local dbPart = findDB1()
+    if not dbPart then
+        notify("B", "DB1 no encontrado.", 4)
+        return
+    end
+    if target.Character and target.Character.PrimaryPart then
+        pcall(function()
+            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(true, target.Character, dbPart.CFrame)
+            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(false, target.Character)
+        end)
+        notify("B", admin.Name.." teletransportó a "..target.Name.." a DB1", 3)
+    else
+        notify("B", "Target no tiene Character/PrimaryPart.", 4)
+    end
+end
+
+-- FS: focus permanente en NPCs (usa npc/ prefijo)
+local function fsCommand(admin, rawTarget)
+    local s = normalizeString(rawTarget or "")
+    local fsTerm = nil
+    if string.sub(s,1,4) == "npc/" then
+        fsTerm = string.sub(s, 5)
+    else
+        notify("FS", "Uso incorrecto. Usa .fs npc/NombreDelNPC", 4)
+        return
+    end
+    fsTerm = fsTerm:gsub("^%s*(.-)%s*$", "%1")
+    local key = tostring(admin.UserId) .. "_" .. fsTerm
+    if _G.focusLoops[key] then
+        notify("FS", "Ya existe un focus para '"..fsTerm.."'", 4)
+        return
+    end
+    _G.focusLoops[key] = true
+    notify("FS", "Focus iniciado para NPC que contenga '"..fsTerm.."'", 4)
+    spawn(function()
+        while _G.focusLoops[key] do
+            local foundNpc = nil
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") then
+                    if normalizeString(obj.Name):find(fsTerm, 1, true) then
+                        foundNpc = obj
+                        break
+                    end
+                end
+            end
+            if foundNpc then
+                local humanoid = foundNpc:FindFirstChildOfClass("Humanoid")
+                local previousHealth = humanoid and humanoid.Health or 0
+                while foundNpc and foundNpc.Parent and _G.focusLoops[key] do
+                    local currentHealth = humanoid and humanoid.Health or 0
+                    if math.abs(currentHealth - previousHealth) >= 1 then
+                        pcall(function()
+                            ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(humanoid, 1e111, admin)
+                        end)
+                        notify("FS", "NPC "..foundNpc.Name.." killado por cambio de vida.", 3)
+                    end
+                    previousHealth = currentHealth
+                    wait(0.1)
+                end
+            else
+                wait(1)
+            end
+        end
+        notify("FS", "Focus finalizado para '"..fsTerm.."'", 3)
+    end)
+end
+
+-- ROLE MANAGEMENT: Solo Owner (LocalPlayer) puede usar rank/unrank
+local function rankCommand(admin, target)
+    if roles[admin.UserId] ~= "owner" then
+        notify("Rank", "Solo Owner puede usar .rank", 4)
+        return
+    end
+    if not roles[target.UserId] then
+        roles[target.UserId] = "admin"
+        notify("Rank", target.Name.." promocionado a Admin", 3)
+    else
+        notify("Rank", target.Name.." ya tiene rol ("..tostring(roles[target.UserId])..")", 3)
+    end
+end
+
+local function unrankCommand(admin, target)
+    if roles[admin.UserId] ~= "owner" then
+        notify("Unrank", "Solo Owner puede usar .unrank", 4)
+        return
+    end
+    if roles[target.UserId] then
+        roles[target.UserId] = nil
+        notify("Unrank", target.Name.." removido del admin list", 3)
+    else
+        notify("Unrank", target.Name.." no estaba en el admin list", 3)
+    end
+end
+
+-- .cmds: enviar lista por chat
+local function cmdsCommand(admin)
+    local message = table.concat(ALL_COMMANDS, ", ")
+    pcall(function()
+        ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(message, "All")
+    end)
+    notify("Cmds", "Lista de comandos enviada por chat.", 4)
+end
+
+-- PROCESAR COMANDO (NPCs y Players)
+local function processAdminCommand(admin, rawMessage)
+    if type(rawMessage) ~= "string" then return end
+    if string.sub(rawMessage, 1, 1) ~= "." then return end
+    if not roles[admin.UserId] then return end
+
+    -- Tokenizar (maneja espacios extras y nombres con espacios)
+    local args = {}
+    for word in rawMessage:gmatch("%S+") do table.insert(args, word) end
     if #args < 1 then return end
-    local cmd = string.lower(string.sub(args[1],2))
-    local targetInput = args[2] or ""
-    -- Si el target comienza con "npc.", se procesan comandos para NPCs; de lo contrario, para jugadores.
-    if string.sub(string.lower(targetInput),1,4) == "npc." then
-        local npcTargets = getNPCsByName(targetInput)
+    local cmd = string.lower(string.sub(args[1], 2))
+    local targetInput = joinArgs(args, 2) -- une todo desde arg[2] (soporta nombres con espacios)
+
+    -- Verificador: si el input indica NPC (prefijo npc/) => manejar como NPC
+    if isNPCInput(targetInput) then
+        local npcTargets = getNPCs(targetInput)
         if #npcTargets < 1 then
-            print("[" .. admin.Name .. "]: No se encontró ningún NPC que coincida.")
+            notify("Admin Ranker", "No se encontró NPC que coincida.", 3)
             return
         end
+
         if cmd == "fs" then
-            fs(admin, targetInput)
+            fsCommand(admin, targetInput)
         elseif cmd == "bring" then
             for _, npc in ipairs(npcTargets) do
-                if npc:FindFirstChildOfClass("Humanoid") then
-                    ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(true, npc, LocalPlayer.Character.PrimaryPart.CFrame)
-                    print("[" .. admin.Name .. "]: Usó /bring en " .. npc.Name)
+                if npc:FindFirstChildOfClass("Humanoid") and admin.Character and admin.Character.PrimaryPart then
+                    pcall(function()
+                        ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(true, npc, admin.Character.PrimaryPart.CFrame)
+                        ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(false, npc)
+                    end)
+                    notify("Bring (NPC)", admin.Name.." trajo NPC "..npc.Name, 3)
                 end
             end
         elseif cmd == "kill" then
             for _, npc in ipairs(npcTargets) do
-                if npc:FindFirstChildOfClass("Humanoid") then
-                    local argsKill = {npc:FindFirstChildOfClass("Humanoid"), 1e111, LocalPlayer}
-                    ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(unpack(argsKill))
-                    if role == "admin" and registerCommandUsage(admin, "kill", npc) then
-                        punishAbusiveAdmin(admin)
-                    end
-                    print("[" .. admin.Name .. "]: Usó /kill en " .. npc.Name)
+                local humanoid = npc:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    pcall(function()
+                        ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(humanoid, 1e111, admin)
+                    end)
+                    if roles[admin.UserId] == "admin" and registerCommandUsage(admin, "kill", npc) then punishAbusiveAdmin(admin) end
+                    notify("Kill (NPC)", admin.Name.." killó NPC "..npc.Name, 3)
                 end
             end
         elseif cmd == "heal" then
             for _, npc in ipairs(npcTargets) do
-                if npc:FindFirstChildOfClass("Humanoid") then
-                    local argsHeal = {npc:FindFirstChildOfClass("Humanoid"), -1e9, LocalPlayer}
-                    ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(unpack(argsHeal))
-                    print("[" .. admin.Name .. "]: Usó /heal en " .. npc.Name)
+                local humanoid = npc:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    pcall(function()
+                        ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(humanoid, -1e9, admin)
+                    end)
+                    notify("Heal (NPC)", admin.Name.." sanó NPC "..npc.Name, 3)
                 end
             end
         elseif cmd == "punish" then
             for _, npc in ipairs(npcTargets) do
-                if npc:FindFirstChildOfClass("Humanoid") then
-                    local uid = npc.Name
-                    if not punishBlacklist[uid] then
-                        punishBlacklist[uid] = true
-                        spawn(function()
-                            local startTime = tick()
-                            while punishBlacklist[uid] and (tick() - startTime) < 60 do
-                                local argsPunish = {true, npc, CFrame.new(math.huge, math.huge, math.huge)}
-                                ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsPunish))
-                                wait(0.1)
-                            end
-                        end)
-                        if role == "admin" and registerCommandUsage(admin, "punish", npc) then
-                            punishAbusiveAdmin(admin)
-                        end
-                        print("[" .. admin.Name .. "]: Usó /punish en " .. npc.Name)
-                    end
-                end
+                applyPunishToModel(admin, npc)
+                notify("Punish (NPC)", admin.Name.." punishó NPC "..npc.Name, 3)
             end
         elseif cmd == "unpunish" then
             for _, npc in ipairs(npcTargets) do
                 local uid = npc.Name
                 if punishBlacklist[uid] then
                     punishBlacklist[uid] = nil
-                    if npc:FindFirstChildOfClass("Humanoid") then
-                        local argsTrue = {true, npc, LocalPlayer.Character.PrimaryPart.CFrame}
-                        ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsTrue))
-                    end
-                    print("[" .. admin.Name .. "]: Usó /unpunish en " .. npc.Name)
+                    pcall(function()
+                        ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(false, npc)
+                    end)
+                    notify("Unpunish (NPC)", admin.Name.." removió punish NPC "..npc.Name, 3)
                 end
             end
         elseif cmd == "freeze" then
             for _, npc in ipairs(npcTargets) do
                 if npc:FindFirstChildOfClass("Humanoid") and npc.PrimaryPart then
-                    local argsFreeze = {true, npc, npc.PrimaryPart.CFrame}
-                    ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsFreeze))
-                    if role == "admin" and registerCommandUsage(admin, "freeze", npc) then
-                        punishAbusiveAdmin(admin)
-                    end
-                    print("[" .. admin.Name .. "]: Usó /freeze en " .. npc.Name)
+                    pcall(function()
+                        ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(true, npc, npc.PrimaryPart.CFrame)
+                    end)
+                    if roles[admin.UserId] == "admin" and registerCommandUsage(admin, "freeze", npc) then punishAbusiveAdmin(admin) end
+                    notify("Freeze (NPC)", admin.Name.." congeló NPC "..npc.Name, 3)
                 end
             end
         elseif cmd == "unfreeze" then
             for _, npc in ipairs(npcTargets) do
-                if npc:FindFirstChildOfClass("Humanoid") then
-                    local argsUnfreeze = {false, npc}
-                    ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsUnfreeze))
-                    print("[" .. admin.Name .. "]: Usó /unfreeze en " .. npc.Name)
-                end
+                pcall(function()
+                    ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(false, npc)
+                end)
+                notify("Unfreeze (NPC)", admin.Name.." descongeló NPC "..npc.Name, 3)
             end
         elseif cmd == "b" then
-            if roles[admin.UserId] == "above" or roles[admin.UserId] == "owner" then
-                local dbPart = Workspace:FindFirstChild("Map") 
-                              and Workspace.Map:FindFirstChild("DBS") 
-                              and Workspace.Map.DBS:FindFirstChild("DB") 
-                              and Workspace.Map.DBS.DB:FindFirstChild("DB1")
-                if dbPart then
-                    for _, npc in ipairs(npcTargets) do
-                        if npc:FindFirstChildOfClass("Humanoid") then
-                            local argsTrue = {true, npc, dbPart.CFrame}
-                            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsTrue))
-                            local argsFalse = {false, npc}
-                            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsFalse))
-                            print("[" .. admin.Name .. "]: Usó /b en " .. npc.Name)
-                        end
+            local dbPart = findDB1()
+            if dbPart then
+                for _, npc in ipairs(npcTargets) do
+                    if npc:FindFirstChildOfClass("Humanoid") then
+                        pcall(function()
+                            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(true, npc, dbPart.CFrame)
+                            ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(false, npc)
+                        end)
+                        notify("B (NPC)", admin.Name.." usó .b en NPC "..npc.Name, 3)
                     end
-                else
-                    print("[" .. admin.Name .. "]: DB1 no encontrado.")
                 end
-            end
-       	elseif cmd == "fs" then
-            local fsTerm = string.match(string.lower(targetInput), "^npc%.(.+)$")
-            if fsTerm then
-                fs(admin, targetInput)
             else
-                print("[" .. admin.Name .. "]: Uso incorrecto. Usa /fs npc.NombreDelNPC")
+                notify("B", "DB1 no encontrado.", 4)
             end
-       	end
-	else
-		-- Procesar comandos para jugadores
-		local playerTargets = getPlayers(targetInput, admin)
-		if #playerTargets < 1 then
-			print("[" .. admin.Name .. "]: No se encontró target que coincida.")
-			return
-		end
-		local function checkAbuse(cmdName, target)
-			if roles[admin.UserId] == "admin" and registerCommandUsage(admin, cmdName, target) then
-				punishAbusiveAdmin(admin)
-			end
-		end
-		if cmd == "cmds" then
-			local available = {"/bring", "/kill", "/heal", "/god", "/killer", "/punish", "/unpunish", "/freeze", "/unfreeze", "/b", "/to", "/rank", "/unrank", "/aboveadmin", "/unabove", "/fs"}
-			local args = {table.concat(available, ", "), admin.Name}
-			ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(unpack(args))
-		elseif cmd == "bring" then
-			for _, target in ipairs(playerTargets) do
-				bring(admin, target)
-			end
-		elseif cmd == "kill" then
-			for _, target in ipairs(playerTargets) do
-				kill(admin, target)
-				checkAbuse("kill", target)
-			end
-		elseif cmd == "heal" then
-			for _, target in ipairs(playerTargets) do
-				heal(admin, target)
-			end
-		elseif cmd == "god" then
-			for _, target in ipairs(playerTargets) do
-				god(admin, target)
-				checkAbuse("god", target)
-			end
-		elseif cmd == "killer" then
-			for _, target in ipairs(playerTargets) do
-				killer(admin, target)
-			end
-		elseif cmd == "punish" then
-			for _, target in ipairs(playerTargets) do
-				punish(admin, target)
-			end
-		elseif cmd == "unpunish" then
-			for _, target in ipairs(playerTargets) do
-				unpunish(admin, target)
-			end
-		elseif cmd == "freeze" then
-			for _, target in ipairs(playerTargets) do
-				freeze(admin, target)
-			end
-		elseif cmd == "unfreeze" then
-			for _, target in ipairs(playerTargets) do
-				unfreeze(admin, target)
-			end
-		elseif cmd == "b" then
-			for _, target in ipairs(playerTargets) do
-				b(admin, target)
-			end
-		elseif cmd == "to" then
-			for _, target in ipairs(playerTargets) do
-				to(admin, target)
-			end
-		elseif cmd == "rank" then
-			for _, target in ipairs(playerTargets) do
-				rank(admin, target)
-			end
-		elseif cmd == "unrank" then
-			for _, target in ipairs(playerTargets) do
-				unrank(admin, target)
-			end
-		elseif cmd == "aboveadmin" then
-			for _, target in ipairs(playerTargets) do
-				aboveadmin(admin, target)
-			end
-		elseif cmd == "unabove" then
-			for _, target in ipairs(playerTargets) do
-				unabove(admin, target)
-			end
-		end
-	end
+        else
+            notify("Admin Ranker", "Comando desconocido para NPCs: "..cmd, 3)
+        end
+
+        return
+    end
+
+    -- Si no es NPC => procesar para players (matching flexible)
+    local playerTargets = getPlayers(targetInput, admin)
+    if #playerTargets < 1 then
+        notify("Admin Ranker", "No se encontró target que coincida.", 3)
+        return
+    end
+
+    local function checkAbuse(cmdName, tgt)
+        if roles[admin.UserId] == "admin" and registerCommandUsage(admin, cmdName, tgt) then punishAbusiveAdmin(admin) end
+    end
+
+    if cmd == "cmds" then
+        cmdsCommand(admin)
+    elseif cmd == "bring" then
+        for _, t in ipairs(playerTargets) do bring(admin, t) end
+    elseif cmd == "kill" then
+        for _, t in ipairs(playerTargets) do kill(admin, t); checkAbuse("kill", t) end
+    elseif cmd == "heal" then
+        for _, t in ipairs(playerTargets) do heal(admin, t) end
+    elseif cmd == "god" then
+        for _, t in ipairs(playerTargets) do god(admin, t); checkAbuse("god", t) end
+    elseif cmd == "killer" then
+        for _, t in ipairs(playerTargets) do killer(admin, t) end
+    elseif cmd == "punish" then
+        for _, t in ipairs(playerTargets) do punishPlayer(admin, t) end
+    elseif cmd == "unpunish" then
+        for _, t in ipairs(playerTargets) do unpunishPlayer(admin, t) end
+    elseif cmd == "freeze" then
+        for _, t in ipairs(playerTargets) do freeze(admin, t) end
+    elseif cmd == "unfreeze" then
+        for _, t in ipairs(playerTargets) do unfreeze(admin, t) end
+    elseif cmd == "b" then
+        for _, t in ipairs(playerTargets) do bCommand(admin, t) end
+    elseif cmd == "to" then
+        for _, t in ipairs(playerTargets) do toCommand(admin, t) end
+    elseif cmd == "rank" then
+        for _, t in ipairs(playerTargets) do rankCommand(admin, t) end
+    elseif cmd == "unrank" then
+        for _, t in ipairs(playerTargets) do unrankCommand(admin, t) end
+    elseif cmd == "fs" then
+        notify("FS", "FS es solo para NPCs (usa .fs npc/NombreDelNPC).", 4)
+    else
+        notify("Admin Ranker", "Comando desconocido: "..cmd, 3)
+    end
 end
 
-------------------------------------------------------------
--- CONEXIÓN: Escuchar el chat de TODOS los jugadores
-------------------------------------------------------------
-Players.PlayerAdded:Connect(function(player)
-	player.Chatted:Connect(function(message)
-		processAdminCommand(player, message)
-	end)
-end)
-for _, player in ipairs(Players:GetPlayers()) do
-	player.Chatted:Connect(function(message)
-		processAdminCommand(player, message)
-	end)
+-- CONEXIONES: Escuchar chat de todos los jugadores (Player.Chatted)
+local function connectPlayerChat(p)
+    p.Chatted:Connect(function(msg)
+        processAdminCommand(p, msg)
+    end)
 end
 
-------------------------------------------------------------
--- FIN DEL SCRIPT
-------------------------------------------------------------
-print("Admin Ranker cargado y en funcionamiento.")
+for _, p in ipairs(Players:GetPlayers()) do
+    connectPlayerChat(p)
+end
+Players.PlayerAdded:Connect(function(p) connectPlayerChat(p) end)
+
+-- LocalPlayer también conectado
+LocalPlayer.Chatted:Connect(function(msg) processAdminCommand(LocalPlayer, msg) end)
+
+notify("Admin Ranker", "Script cargado y listo. Usa '.' para comandos. Para NPCs usa prefijo 'npc/'.", 5)
