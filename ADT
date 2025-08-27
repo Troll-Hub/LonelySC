@@ -224,7 +224,7 @@ local function spawnParticleEffect(button)
         particle.Parent = button
         local randomOffset = UDim2.new(0, math.random(-20,20), 0, math.random(-20,20))
         local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        local tween = TweenService:Create(particle, tweenInfo, {Position = randomOffset, ImageTransparency = 1})
+        local tween = TweenService:Create(particle, tweenInfo, {Position = randomOffset, ImageTransparency = 0})
         tween:Play()
         tween.Completed:Connect(function() particle:Destroy() end)
     end
@@ -486,7 +486,7 @@ end)
 -------------------------------------------------------------------
 -- Crear botones (todos los comandos)
 -------------------------------------------------------------------
-local commands = {"bring","kill","heal","punish","unpunish","freeze","unfreeze","to","b1","hk","unlock","Force Lag","T objetive"}
+local commands = {"kill","heal","punish","unpunish","freeze","unfreeze","bring", "to","b1","hk","unlock","permGod", "Force Lag","T objetive"}
 for _, cmd in ipairs(commands) do
     local button = Instance.new("TextButton")
     button.BackgroundColor3 = Color3.fromRGB(230,230,230)
