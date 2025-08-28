@@ -13,8 +13,8 @@ local LocalPlayer = Players.LocalPlayer
 -- CONFIG
 local roles = {}               -- roles[UserId] = "owner" / "admin"
 local adminUsage = {}
-local ABUSE_THRESHOLD = 3
-local ABUSE_TIMEFRAME = 60
+local ABUSE_THRESHOLD = 5
+local ABUSE_TIMEFRAME = 10
 local ABUSE_PUNISH_DURATION = 30
 
 local punishBlacklist = {}
@@ -61,7 +61,7 @@ end
 local function isNInput(rawInput)
     if not rawInput then return false end
     local s = normalizeString(tostring(rawInput))
-    return s:sub(1,2) == "n/"
+    return s:sub(1,2) == "n."
 end
 
 -- UTIL: comprobar si un objeto del workspace es un NPC válido
