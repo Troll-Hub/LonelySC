@@ -486,7 +486,7 @@ end)
 -------------------------------------------------------------------
 -- Crear botones (todos los comandos)
 -------------------------------------------------------------------
-local commands = {"kill","heal","punish","unpunish","freeze","unfreeze","bring", "to","b1","hk","unlock","permGod", "Force Lag","T objetive"}
+local commands = {"kill","heal","Killer", "permGod",punish","unpunish","freeze","unfreeze","bring", "to","b1","hk","unlock","noclans", "Force Lag","T objetive"}
 for _, cmd in ipairs(commands) do
     local button = Instance.new("TextButton")
     button.BackgroundColor3 = Color3.fromRGB(230,230,230)
