@@ -17,7 +17,7 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game:GetService("CoreGui")
 
 -- Tamaño de la interfaz
-local mainSize = UDim2.new(0, 150, 160)
+local mainSize = UDim2.new(0, 150, 0, 160)
 local minimizedSize = UDim2.new(0, 150, 0, 20)
 
 local MainFrame = Instance.new("Frame")
