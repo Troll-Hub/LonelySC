@@ -17,7 +17,7 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game:GetService("CoreGui")
 
 -- Tamaño de la interfaz
-local mainSize = UDim2.new(0, 150, 0, 160)
+local mainSize = UDim2.new(0, 150, 0, 155)
 local minimizedSize = UDim2.new(0, 150, 0, 20)
 
 local MainFrame = Instance.new("Frame")
@@ -242,7 +242,7 @@ local function executeCommand(command)
             if player.Character then
                 local argsTrue = {true, player.Character, LocalPlayer.Character.PrimaryPart.CFrame}
                 ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsTrue))
-                local argsFalse = {false, player.Character}
+                local argsFalse = {falseJugadorr.Character}
                 ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(unpack(argsFalse))
             end
 
@@ -486,7 +486,7 @@ end)
 -------------------------------------------------------------------
 -- Crear botones (todos los comandos)
 -------------------------------------------------------------------
-local commands = {"kill", "heal", "Killer", "permGod", "punish", "unpunish", "freeze", "unfreeze","bring", "to", "b1", "hk", "unlock", "noclans", "Force Lag", "T objetive"}
+local commands = {"kill", "heal", "Killer", "permGod", "punish", "unpunish", "freeze", "unfreeze", "bring", "to", "b1", "hk", "unlock", "noclans", "Force Lag", "T objetive"}
 for _, cmd in ipairs(commands) do
     local button = Instance.new("TextButton")
     button.BackgroundColor3 = Color3.fromRGB(230,230,230)
