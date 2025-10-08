@@ -13,9 +13,9 @@ local LocalPlayer = Players.LocalPlayer
 -- CONFIG
 local roles = {}               -- roles[UserId] = "owner" / "admin"
 local adminUsage = {}
-local ABUSE_THRESHOLD = 5
-local ABUSE_TIMEFRAME = 10
-local ABUSE_PUNISH_DURATION = 30
+local ABUSE_THRESHOLD = 10
+local ABUSE_TIMEFRAME = 5
+local ABUSE_PUNISH_DURATION = 5
 
 local punishBlacklist = {}
 
