@@ -567,7 +567,7 @@ local function executeCommand(command)
 
 		elseif command == "b1" then
 			pcall(function()
-				local object = workspace.Map.DBS.DB.DB1
+				local object = Workspace:FindFirstChild("Map") and Workspace.Map.DBS.DB:FindFirstChild("DB1")
 				if object and char and ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Moves and ReplicatedStorage._BindableEvents.Moves.StopEnemy then
 					ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(true, char, object.CFrame)
 					ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(false, char)
