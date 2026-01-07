@@ -691,6 +691,7 @@ local function executeCommand(command)
 		runForTarget(p)
 	end
 end
+
 	StarterGui:SetCore("SendNotification", { Title="🐉Cmds", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
 end
 
