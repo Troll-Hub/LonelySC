@@ -43,14 +43,14 @@ local Header = Instance.new("Frame", MainFrame)
 Header.Name = "Header"
 Header.Size = UDim2.new(1, 0, 0, 24)
 Header.Position = UDim2.new(0, 0, 0, 0)
-Header.BackgroundTransparency = 1
+Header.BackgroundTransparency = 0
 
 local TitleLabel = Instance.new("TextLabel", Header)
 TitleLabel.Size = UDim2.new(0.8, 0, 1, 0)
 TitleLabel.Position = UDim2.new(0, 8, 0, 0)
-TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "Admin Interface"
-TitleLabel.TextColor3 = Color3.fromRGB(255,255,255)
+TitleLabel.BackgroundTransparency = 0
+TitleLabel.Text = "🐉Dragon Core"
+TitleLabel.TextColor3 = Color3.fromRGB(255,0,0)
 TitleLabel.TextScaled = true
 TitleLabel.Font = Enum.Font.GothamSemibold
 
@@ -67,7 +67,7 @@ local ContentFrame = Instance.new("Frame", MainFrame)
 ContentFrame.Name = "ContentFrame"
 ContentFrame.Size = UDim2.new(1, 0, 1, -24)
 ContentFrame.Position = UDim2.new(0, 0, 0, 24)
-ContentFrame.BackgroundTransparency = 1
+ContentFrame.BackgroundTransparency = 0
 
 -- layout sizes
 local inputHeight = 28
