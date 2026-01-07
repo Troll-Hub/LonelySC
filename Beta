@@ -642,56 +642,54 @@ local function executeCommand(command)
 			end)
 
 		elseif command == "T objetive" then
-	-- Arreglado: aplica a players y NPCs por igual (usa 'targets' calculado antes)
 	local alreadyExecuted = {}
+
+	local function resolveCharacter(obj)
+		if typeof(obj) ~= "Instance" then return nil end
+
+		if obj:IsA("Player") then
+			return obj.Character
+		elseif obj:IsA("Model") then
+			if obj:FindFirstChildOfClass("Humanoid") then
+				return obj
+			end
+		end
+
+		return nil
+	end
+
 	local function runForTarget(p)
 		if alreadyExecuted[p] then return end
 		alreadyExecuted[p] = true
 
-		local targetChar = nil
-		local isPlayer = false
+		local targetChar = resolveCharacter(p)
+		if not targetChar then return end
 
-		if typeof(p) == "Instance" and p:IsA("Player") then
-			isPlayer = true
-			targetChar = p.Character
-			if not targetChar then
-				p.CharacterAdded:Wait()
-				targetChar = p.Character
-			end
+		local humanoid = targetChar:FindFirstChildOfClass("Humanoid")
+		if not humanoid then return end
 
-		elseif typeof(p) == "Instance" and p:IsA("Model") then
-			targetChar = p
-		end
+		local args = {
+			[1] = {
+				["Humanoid"] = humanoid,
+				["Head"] = targetChar:FindFirstChild("Head"),
+				["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
+				["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
+				["Character"] = targetChar
+			},
+			[2] = (LocalPlayer and LocalPlayer:FindFirstChild("Status") and LocalPlayer.Status.Mode) or nil,
+			[3] = (targetChar:FindFirstChild("Status") and targetChar.Status.ModeActive) or nil,
+			[4] = targetChar:FindFirstChild("Status"),
+			[5] = false
+		}
 
-		if targetChar and targetChar:FindFirstChildOfClass("Humanoid") then
-			local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
-			local status = targetChar:FindFirstChild("Status")
-
-			local args = {
-				[1] = {
-					["Humanoid"] = humanoid,
-					["Head"] = targetChar:FindFirstChild("Head"),
-					["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
-					["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
-					["Character"] = targetChar,
-					["IsPlayer"] = isPlayer
-				},
-				[2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
-				[3] = (status and status.ModeActive) or nil,
-				[4] = status,
-				[5] = false
-			}
-
-			pcall(function()
-				if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Transform then
-					ReplicatedStorage._BindableEvents.Transform:InvokeServer(unpack(args))
-				end
-			end)
-		end
+		pcall(function()
+			ReplicatedStorage._BindableEvents.Transform:Invoke(unpack(args))
+		end)
 	end
 
-	-- ejecuta para cada objetivo resuelto
-	for _, p in ipairs(targets) do runForTarget(p) end
+	for _, p in ipairs(targets) do
+		runForTarget(p)
+	end
 end
 	StarterGui:SetCore("SendNotification", { Title="🐉Cmds", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
 end
