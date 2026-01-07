@@ -584,7 +584,7 @@ local function executeCommand(command)
 			end)
 
 		elseif command == "unlock" then
-			pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Troll-Hub/LonelySC/refs/heads/main/Unlocker%201.0"))() end)
+			pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Troll-Hub/LonelySC/refs/heads/main/Unlocker%202.5"))() end)
 
 		elseif command == "Force Lag" then
 			if char and primary then
@@ -683,7 +683,7 @@ local function executeCommand(command)
 		end
 	end
 
-	StarterGui:SetCore("SendNotification", { Title="Admin", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
+	StarterGui:SetCore("SendNotification", { Title="🐉Custom", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
 end
 
 -------------------------------------------------------------------
@@ -792,7 +792,7 @@ InputBox.FocusLost:Connect(function(enterPressed)
 			clearSuggestions()
 			return
 		end
-		StarterGui:SetCore("SendNotification", { Title = "Admin", Text = "Pulsa un botón de comando para ejecutar.", Duration = 1 })
+		StarterGui:SetCore("SendNotification", { Title = "🐉Dragon Core", Text = "Pulsa un botón de comando para ejecutar.", Duration = 1 })
 	end
 end)
 
