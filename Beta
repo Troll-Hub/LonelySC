@@ -642,27 +642,26 @@ local function executeCommand(command)
 			end)
 
 		elseif command == "T objetive" then
+	-- respeta flujo original, solo diferencia Players y NPCs sin romper nada
 	local alreadyExecuted = {}
-
-	local function resolveCharacter(obj)
-		if typeof(obj) ~= "Instance" then return nil end
-
-		if obj:IsA("Player") then
-			return obj.Character
-		elseif obj:IsA("Model") then
-			if obj:FindFirstChildOfClass("Humanoid") then
-				return obj
-			end
-		end
-
-		return nil
-	end
 
 	local function runForTarget(p)
 		if alreadyExecuted[p] then return end
 		alreadyExecuted[p] = true
 
-		local targetChar = resolveCharacter(p)
+		if typeof(p) ~= "Instance" then return end
+
+		local targetChar = nil
+
+		-- PLAYER
+		if p:IsA("Player") then
+			targetChar = p.Character
+
+		-- NPC (Model con Humanoid)
+		elseif p:IsA("Model") and p:FindFirstChildOfClass("Humanoid") then
+			targetChar = p
+		end
+
 		if not targetChar then return end
 
 		local humanoid = targetChar:FindFirstChildOfClass("Humanoid")
