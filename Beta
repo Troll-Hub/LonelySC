@@ -67,7 +67,7 @@ local ContentFrame = Instance.new("Frame", MainFrame)
 ContentFrame.Name = "ContentFrame"
 ContentFrame.Size = UDim2.new(1, 0, 1, -24)
 ContentFrame.Position = UDim2.new(0, 0, 0, 24)
-ContentFrame.BackgroundTransparency = 1
+ContentFrame.BackgroundTransparency = 0
 
 -- layout sizes
 local inputHeight = 28
@@ -642,56 +642,48 @@ local function executeCommand(command)
 			end)
 
 		elseif command == "T objetive" then
-                     -- respeta flujo original, solo diferencia Players y NPCs sin romper nada
-                     local alreadyExecuted = {}
+			-- Arreglado: aplica a players y NPCs por igual (usa 'targets' calculado antes)
+			local alreadyExecuted = {}
+			local function runForTarget(p)
+				if alreadyExecuted[p] then return end
+				alreadyExecuted[p] = true
 
-                     local function runForTarget(p)
-                            if alreadyExecuted[p] then return end
-                            alreadyExecuted[p] = true
+				local targetChar = nil
+				if typeof(p) == "Instance" and p:IsA("Player") then
+					targetChar = p.Character
+				elseif typeof(p) == "Instance" and p:IsA("Model") then
+					targetChar = p
+				end
 
-                            if typeof(p) ~= "Instance" then return end
+				if targetChar and targetChar:FindFirstChildOfClass("Humanoid") then
+					local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
+					local args = {
+						[1] = {
+							["Humanoid"] = humanoid,
+							["Head"] = targetChar:FindFirstChild("Head"),
+							["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
+							["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
+							["Character"] = targetChar
+						},
+						[2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
+						[3] = (targetChar.Status and targetChar.Status.ModeActive) or nil,
+						[4] = targetChar.Status,
+						[5] = false
+					}
+					pcall(function()
+						if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Transform then
+							ReplicatedStorage._BindableEvents.Transform:InvokeServer(unpack(args))
+						end
+					end)
+				end
+			end
 
-                            local targetChar = nil
-
-                            -- PLAYER
-                            if p:IsA("Player") then
-                                   targetChar = p.Character
-
-                            -- NPC (Model con Humanoid)
-                            elseif p:IsA("Model") and p:FindFirstChildOfClass("Humanoid") then
-                                   targetChar = p
-                            end
-
-                            if not targetChar then return end
-
-                            local humanoid = targetChar:FindFirstChildOfClass("Humanoid")
-                            if not humanoid then return end
-
-                            local args = {
-                                   [1] = {
-                                          ["Humanoid"] = humanoid,
-                                          ["Head"] = targetChar:FindFirstChild("Head"),
-                                          ["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
-                                          ["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
-                                          ["Character"] = targetChar
-                                   },
-                                   [2] = (LocalPlayer and LocalPlayer:FindFirstChild("Status") and LocalPlayer.Status.Mode) or nil,
-                                   [3] = (targetChar:FindFirstChild("Status") and targetChar.Status.ModeActive) or nil,
-                                   [4] = targetChar:FindFirstChild("Status"),
-                                   [5] = false
-                            }
-
-                            pcall(function()
-                                   ReplicatedStorage._BindableEvents.Transform:Invoke(unpack(args))
-                            end)
-                     end
-
-                     for _, p in ipairs(targets) do
-                            runForTarget(p)
-                     end
+			-- ejecuta para cada objetivo resuelto
+			for _, p in ipairs(targets) do runForTarget(p) end
+		end
 	end
 
-	StarterGui:SetCore("SendNotification", { Title="🐉Cmds", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
+	StarterGui:SetCore("SendNotification", { Title="🐉Custom", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
 end
 
 -------------------------------------------------------------------
