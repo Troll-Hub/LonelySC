@@ -642,54 +642,54 @@ local function executeCommand(command)
 			end)
 
 		elseif command == "T objetive" then
-	-- respeta flujo original, solo diferencia Players y NPCs sin romper nada
-	local alreadyExecuted = {}
+                     -- respeta flujo original, solo diferencia Players y NPCs sin romper nada
+                     local alreadyExecuted = {}
 
-	local function runForTarget(p)
-		if alreadyExecuted[p] then return end
-		alreadyExecuted[p] = true
+                     local function runForTarget(p)
+                            if alreadyExecuted[p] then return end
+                            alreadyExecuted[p] = true
 
-		if typeof(p) ~= "Instance" then return end
+                            if typeof(p) ~= "Instance" then return end
 
-		local targetChar = nil
+                            local targetChar = nil
 
-		-- PLAYER
-		if p:IsA("Player") then
-			targetChar = p.Character
+                            -- PLAYER
+                            if p:IsA("Player") then
+                                   targetChar = p.Character
 
-		-- NPC (Model con Humanoid)
-		elseif p:IsA("Model") and p:FindFirstChildOfClass("Humanoid") then
-			targetChar = p
-		end
+                            -- NPC (Model con Humanoid)
+                            elseif p:IsA("Model") and p:FindFirstChildOfClass("Humanoid") then
+                                   targetChar = p
+                            end
 
-		if not targetChar then return end
+                            if not targetChar then return end
 
-		local humanoid = targetChar:FindFirstChildOfClass("Humanoid")
-		if not humanoid then return end
+                            local humanoid = targetChar:FindFirstChildOfClass("Humanoid")
+                            if not humanoid then return end
 
-		local args = {
-			[1] = {
-				["Humanoid"] = humanoid,
-				["Head"] = targetChar:FindFirstChild("Head"),
-				["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
-				["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
-				["Character"] = targetChar
-			},
-			[2] = (LocalPlayer and LocalPlayer:FindFirstChild("Status") and LocalPlayer.Status.Mode) or nil,
-			[3] = (targetChar:FindFirstChild("Status") and targetChar.Status.ModeActive) or nil,
-			[4] = targetChar:FindFirstChild("Status"),
-			[5] = false
-		}
+                            local args = {
+                                   [1] = {
+                                          ["Humanoid"] = humanoid,
+                                          ["Head"] = targetChar:FindFirstChild("Head"),
+                                          ["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
+                                          ["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
+                                          ["Character"] = targetChar
+                                   },
+                                   [2] = (LocalPlayer and LocalPlayer:FindFirstChild("Status") and LocalPlayer.Status.Mode) or nil,
+                                   [3] = (targetChar:FindFirstChild("Status") and targetChar.Status.ModeActive) or nil,
+                                   [4] = targetChar:FindFirstChild("Status"),
+                                   [5] = false
+                            }
 
-		pcall(function()
-			ReplicatedStorage._BindableEvents.Transform:Invoke(unpack(args))
-		end)
+                            pcall(function()
+                                   ReplicatedStorage._BindableEvents.Transform:Invoke(unpack(args))
+                            end)
+                     end
+
+                     for _, p in ipairs(targets) do
+                            runForTarget(p)
+                     end
 	end
-
-	for _, p in ipairs(targets) do
-		runForTarget(p)
-	end
-end
 
 	StarterGui:SetCore("SendNotification", { Title="🐉Cmds", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
 end
