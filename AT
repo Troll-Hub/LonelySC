@@ -42,6 +42,7 @@ task.spawn(function()
 					local o=n:FindFirstChildOfClass("Humanoid")
 					if o then
 						d:FireServer(o,-9990,m)
+						task.wait(1)
 						d:FireServer(o,10000000,m)
 					end
 				end
