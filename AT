@@ -41,7 +41,8 @@ task.spawn(function()
 				if n then
 					local o=n:FindFirstChildOfClass("Humanoid")
 					if o then
-						d:FireServer(o,1e11,m)
+						d:FireServer(o,-9990,m)
+						d:FireServer(o,10000000,m)
 					end
 				end
 			end
