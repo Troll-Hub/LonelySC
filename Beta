@@ -67,7 +67,7 @@ local ContentFrame = Instance.new("Frame", MainFrame)
 ContentFrame.Name = "ContentFrame"
 ContentFrame.Size = UDim2.new(1, 0, 1, -24)
 ContentFrame.Position = UDim2.new(0, 0, 0, 24)
-ContentFrame.BackgroundTransparency = 0
+ContentFrame.BackgroundTransparency = 1
 
 -- layout sizes
 local inputHeight = 28
@@ -683,7 +683,7 @@ local function executeCommand(command)
 		end
 	end
 
-	StarterGui:SetCore("SendNotification", { Title="🐉Custom", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
+	StarterGui:SetCore("SendNotification", { Title="🐉Cmds", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
 end
 
 -------------------------------------------------------------------
