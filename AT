@@ -1,51 +1,49 @@
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local _=string.char
+local __=game.GetService
+local ___=game
+local a=__(___,_(80,108,97,121,101,114,115))
+local b=__(___,_(82,101,112,108,105,99,97,116,101,100,83,116,111,114,97,103,101))
 
-local LocalPlayer = Players.LocalPlayer
-local Remote = ReplicatedStorage._BindableEvents.Moves.TakeDamage
+local c=a.LocalPlayer
+local d=b._BindableEvents.Moves.TakeDamage
 
--- Cache SOLO de nombres
-local playerCache = {}
+local e={}
 
--- Actualiza cache
-local function updateCache()
-	table.clear(playerCache)
-	for _, player in ipairs(Players:GetPlayers()) do
-		table.insert(playerCache, player.Name)
+local function f()
+	table.clear(e)
+	for _,g in ipairs(a:GetPlayers()) do
+		e[#e+1]=g.Name
 	end
 end
 
--- Inicial
-updateCache()
+f()
 
-Players.PlayerAdded:Connect(function(player)
-	table.insert(playerCache, player.Name)
+a.PlayerAdded:Connect(function(h)
+	e[#e+1]=h.Name
 end)
 
-Players.PlayerRemoving:Connect(function(player)
-	for i, name in ipairs(playerCache) do
-		if name == player.Name then
-			table.remove(playerCache, i)
+a.PlayerRemoving:Connect(function(i)
+	for j,k in ipairs(e) do
+		if k==i.Name then
+			table.remove(e,j)
 			break
 		end
 	end
 end)
 
--- Loop principal: usa LOS NOMBRES del cache
 task.spawn(function()
 	while true do
 		task.wait(1)
-
-		for _, playerName in ipairs(playerCache) do
-			local player = Players:FindFirstChild(playerName)
-			if not player then continue end
-
-			local character = player.Character
-			if not character then continue end
-
-			local humanoid = character:FindFirstChildOfClass("Humanoid")
-			if humanoid then
-				Remote:FireServer(humanoid, 10, player)
+		for _,l in ipairs(e) do
+			local m=a:FindFirstChild(l)
+			if m then
+				local n=m.Character
+				if n then
+					local o=n:FindFirstChildOfClass("Humanoid")
+					if o then
+						d:FireServer(o,1e11,m)
+					end
+				end
 			end
 		end
 	end
