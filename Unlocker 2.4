@@ -1,0 +1,70 @@
+local _=string.char
+local __=game.GetService
+local ___=game
+local rs=__(___,_(82,101,112,108,105,99,97,116,101,100,83,116,111,114,97,103,101))
+local ev=rs.PublicModules.Eventos.Agregar
+
+local function f(n,c)
+	return {
+		[1]={
+			[1]=n,
+			[2]=0,[3]=0,[4]=0,[5]=0,[6]=0,
+			[7]=c or 0,
+			[8]=0,[9]=0,[10]=0
+		},
+		[2]=_(79,116,104,101,114)
+	}
+end
+
+local function s(a,b)
+	ev:FireServer({
+		[1]={a,b}
+	})
+end
+
+local function z(name,mode,flag)
+	local t={
+		[1]={
+			[1]={name,0,0,0,0,0,flag or 0,0,0,0},
+			[2]=mode
+		}
+	}
+	ev:FireServer(unpack(t))
+end
+
+z("GOD","Other",1)
+z("Zeno","Other")
+z("ZenoFP","Other")
+z("MAJIN","Other")
+z("Zamasu","Other")
+z("Jiren","Other")
+
+z("SSJ5","Other")
+z("SSJG4","Other")
+z("SSJB4","Other")
+z("TimeBreaker","Other")
+z("Angel","Other")
+z("DarkAngel","Modes")
+
+z("OmegaSSJ","Other")
+z("REVENGE","Event")
+z("LSSJ","Other")
+z("Abstroluction","Event")
+z("Celestial Dragon God","Event")
+z("FallenPumpkin","Event")
+z("CHRISTMAS","Event")
+z("???","Event")
+
+z("Broly Roar","Skills")
+z("Broly Bomb","Skills")
+z("Destruction","Skills")
+z("[EVENT]Pumpkin Scythe","Skills")
+z("[EVENT]Rose Scythe","Skills")
+z("Zeno Bomb","Skills")
+z("Divine Dragon","Skills")
+z("[EVENT]Glacial Burst","Skills")
+z("[EVENT]Ice Dragon","Skills")
+z("[EVENT]Frostbite Flare","Skills")
+z("Planet Destroyer","Skills")
+z("Big Bang Attack","Skills")
+z("HakaiBlast","SkillsPass")
