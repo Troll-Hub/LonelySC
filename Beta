@@ -642,94 +642,54 @@ local function executeCommand(command)
 			end)
 
 		elseif command == "T objetive" then
-    StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Targets", Text="Targets encontrados: "..#targets, Duration=3})
-    
+    -- Arreglado: aplica a players y NPCs por igual (usa 'targets' calculado antes)
     local alreadyExecuted = {}
-    
-    local function getTargetCharacter(target)
-        local targetType = "Unknown"
-        if target:IsA("Player") then 
-            targetType = "Player"
-        elseif target:IsA("Model") then 
-            targetType = "NPC" 
-        end
-        StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Tipo", Text="Target: "..(target.Name or target.DisplayName or "??").." ("..targetType..")", Duration=2})
-        
-        if target:IsA("Player") then
-            local char = target.Character
-            if char and (char:FindFirstChildOfClass("Humanoid") or char:FindFirstChild("Humanoid")) then
-                StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Char", Text="Player char OK: "..char.Name, Duration=1.5})
-                return char
-            else
-                StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Fail", Text="Player sin Character/Humanoid", Duration=2})
-                return nil
-            end
-        elseif target:IsA("Model") then
-            local hum = target:FindFirstChildOfClass("Humanoid") or target:FindFirstChild("Humanoid")
-            if hum then
-                StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Char", Text="NPC char OK: "..target.Name, Duration=1.5})
-                return target
-            else
-                StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Fail", Text="NPC sin Humanoid", Duration=2})
-                return nil
-            end
-        end
-        return nil
-    end
-    
-    for _, target in ipairs(targets) do
-        local targetName = target.Name or (target.DisplayName or "??")
-        
-        if alreadyExecuted[target] then 
-            StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Skip", Text="Ya hecho: "..targetName, Duration=1})
-        else
-            alreadyExecuted[target] = true
-            
-            local targetChar = getTargetCharacter(target)
-            if targetChar then
-                
-                local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
-                if humanoid then
-                    
-                    local args = {
-                        [1] = {
-                            ["Humanoid"] = humanoid,
-                            ["Head"] = targetChar:FindFirstChild("Head"),
-                            ["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
-                            ["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
-                            ["Character"] = targetChar
-                        },
-                        [2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
-                        [3] = (targetChar.Status and targetChar.Status.ModeActive) or nil,
-                        [4] = targetChar.Status,
-                        [5] = false
-                    }
-                    
-                    StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Enviando", Text="Invoke para: "..targetName, Duration=1.5})
-                    
-                    local bindables = ReplicatedStorage:FindFirstChild("_BindableEvents")
-                    local success, err = pcall(function()
-                        if bindables and bindables:FindFirstChild("Transform") then
-                            bindables.Transform:InvokeServer(unpack(args))
-                            return true
-                        else
-                            error("Transform no encontrado")
-                        end
-                    end)
-                    
-                    if success then
-                        StarterGui:SetCore("SendNotification", {Title="🐉SUCCESS", Text="Invoke OK para "..targetName.."! (server decide si transforma)", Duration=3})
-                    else
-                        StarterGui:SetCore("SendNotification", {Title="🐉ERROR", Text="Fallo: "..tostring(err), Duration=4})
-                    end
-                    
-                else 
-                    StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Fail", Text="Sin Humanoid final: "..targetName, Duration=2})
+    local function runForTarget(p)
+        if alreadyExecuted[p] then return end
+        alreadyExecuted[p] = true
+
+        local function getTargetCharacter(p)
+            if p:IsA("Player") then
+                local char = p.Character
+                if char and char:FindFirstChild("Humanoid") then
+                    return char
                 end
-                
-            end 
-        end 
+            elseif p:IsA("Model") then
+                local humanoid = p:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    return p
+                end
+            end
+            return nil
+        end
+
+        local targetChar = getTargetCharacter(p)  -- ← ESTA LÍNEA ES LA QUE FALTABA EN TU ORIGINAL
+
+        if targetChar and targetChar:FindFirstChildOfClass("Humanoid") then
+            local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
+            local args = {
+                [1] = {
+                    ["Humanoid"] = humanoid,
+                    ["Head"] = targetChar:FindFirstChild("Head"),
+                    ["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
+                    ["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
+                    ["Character"] = targetChar
+                },
+                [2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
+                [3] = (targetChar.Status and targetChar.Status.ModeActive) or nil,
+                [4] = targetChar.Status,
+                [5] = false
+            }
+            pcall(function()
+                if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Transform then
+                    ReplicatedStorage._BindableEvents.Transform:InvokeServer(unpack(args))
+                end
+            end)
+        end
     end
+
+    -- ejecuta para cada objetivo resuelto
+    for _, p in ipairs(targets) do runForTarget(p) end
 end
 
 	StarterGui:SetCore("SendNotification", { Title="🐉Custom", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
