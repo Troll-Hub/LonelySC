@@ -586,9 +586,9 @@ local function executeCommand(command)
 		elseif command == "MUI" then
 			pcall(function()
 				local MUIItem = game:GetService("TestService")["APPDATA.NET"]:FindFirstChild("???")
-				if hakaiItem then
+				if MUIItem then
 					local MUIClone = MUIItem:Clone()
-					hakaiClone.Parent = LocalPlayer.Backpack
+					MUIClone.Parent = LocalPlayer.Backpack
 				end
 			end)
 
