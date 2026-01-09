@@ -1,261 +1,4 @@
--- Admin Interface completo final
--- Incluye: cache de NPCs, autocompletado animado, botones scrollables, navegación con teclado, y T objetive arreglado.
-
--- Servicios
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = Players.LocalPlayer
-local StarterGui = game:GetService("StarterGui")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
-
--- Estado
-local punishBlacklist = {} -- userId -> true
-
--------------------------------------------------------------------
--- UI (ScreenGui) - tamaño/estética final
--------------------------------------------------------------------
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = game:GetService("CoreGui")
-ScreenGui.Name = "AdminInterfaceGui"
-
-local mainSize = UDim2.new(0, 200, 0, 300)
-local minimizedSize = UDim2.new(0, 200, 0, 20)
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = mainSize
-MainFrame.Position = UDim2.new(0.5, -100, 0.25, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MainFrame.BackgroundTransparency = 0.2
-MainFrame.BorderSizePixel = 0
-MainFrame.ClipsDescendants = true
-MainFrame.Parent = ScreenGui
-
-local uiGradientMain = Instance.new("UIGradient", MainFrame)
-uiGradientMain.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(25,25,25)), ColorSequenceKeypoint.new(1, Color3.fromRGB(10,10,10)) })
-uiGradientMain.Rotation = 45
-
-local UICorner = Instance.new("UICorner", MainFrame)
-UICorner.CornerRadius = UDim.new(0, 12)
-
-local Header = Instance.new("Frame", MainFrame)
-Header.Name = "Header"
-Header.Size = UDim2.new(1, 0, 0, 24)
-Header.Position = UDim2.new(0, 0, 0, 0)
-Header.BackgroundTransparency = 1
-
-local TitleLabel = Instance.new("TextLabel", Header)
-TitleLabel.Size = UDim2.new(0.8, 0, 1, 0)
-TitleLabel.Position = UDim2.new(0, 8, 0, 0)
-TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "🐉Dragon Core"
-TitleLabel.TextColor3 = Color3.fromRGB(255,0,0)
-TitleLabel.TextScaled = true
-TitleLabel.Font = Enum.Font.GothamSemibold
-
-local MinimizeButton = Instance.new("TextButton", Header)
-MinimizeButton.Size = UDim2.new(0.2, -8, 1, 0)
-MinimizeButton.Position = UDim2.new(0.8, 0, 0, 0)
-MinimizeButton.BackgroundColor3 = Color3.fromRGB(255,255,255)
-MinimizeButton.Text = "–"
-MinimizeButton.TextColor3 = Color3.fromRGB(0,0,0)
-MinimizeButton.TextScaled = true
-MinimizeButton.Font = Enum.Font.GothamSemibold
-
-local ContentFrame = Instance.new("Frame", MainFrame)
-ContentFrame.Name = "ContentFrame"
-ContentFrame.Size = UDim2.new(1, 0, 1, -24)
-ContentFrame.Position = UDim2.new(0, 0, 0, 24)
-ContentFrame.BackgroundTransparency = 1
-
--- layout sizes
-local inputHeight = 28
-local suggestionsHeight = 140
-local padding = 6
-
--- InputBox
-local InputFrame = Instance.new("Frame", ContentFrame)
-InputFrame.Name = "InputFrame"
-InputFrame.Size = UDim2.new(1, 0, 0, inputHeight)
-InputFrame.Position = UDim2.new(0, 0, 0, 0)
-InputFrame.BackgroundTransparency = 1
-
-local InputBox = Instance.new("TextBox", InputFrame)
-InputBox.Size = UDim2.new(0.92, 0, 0, inputHeight - 8)
-InputBox.Position = UDim2.new(0.04, 0, 0.18, 0)
-InputBox.BackgroundColor3 = Color3.fromRGB(30,30,30)
-InputBox.TextColor3 = Color3.fromRGB(0,255,0)
-InputBox.PlaceholderText = "Escribe jugador o NPC..."
-InputBox.ClearTextOnFocus = true
-InputBox.Font = Enum.Font.Gotham
-
-local InputCorner = Instance.new("UICorner", InputBox)
-InputCorner.CornerRadius = UDim.new(0,10)
-local uiGradientInput = Instance.new("UIGradient", InputBox)
-uiGradientInput.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(35,35,35)), ColorSequenceKeypoint.new(1, Color3.fromRGB(25,25,25)) })
-uiGradientInput.Rotation = 45
-
--- Suggestions area
-local SuggestionsFrame = Instance.new("Frame", ContentFrame)
-SuggestionsFrame.Name = "SuggestionsFrame"
-SuggestionsFrame.Size = UDim2.new(0.92, 0, 0, suggestionsHeight)
-SuggestionsFrame.Position = UDim2.new(0.04, 0, 0, inputHeight + 4)
-SuggestionsFrame.BackgroundTransparency = 1
-SuggestionsFrame.Visible = false
-
-local SuggestionsList = Instance.new("ScrollingFrame", SuggestionsFrame)
-SuggestionsList.Size = UDim2.new(1, 0, 1, 0)
-SuggestionsList.CanvasSize = UDim2.new(0,0,0,0)
-SuggestionsList.ScrollBarThickness = 6
-SuggestionsList.BackgroundTransparency = 1
-SuggestionsList.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
-local uiListLayout = Instance.new("UIListLayout", SuggestionsList)
-uiListLayout.Padding = UDim.new(0,6)
-
--- ButtonsFrame scrollable
-local ButtonsFrame = Instance.new("ScrollingFrame", ContentFrame)
-ButtonsFrame.Name = "ButtonsFrame"
-ButtonsFrame.Position = UDim2.new(0, 0, 0, inputHeight + 4 + suggestionsHeight + padding)
-ButtonsFrame.Size = UDim2.new(1, 0, 1, -(inputHeight + 4 + suggestionsHeight + padding))
-ButtonsFrame.BackgroundTransparency = 0.15
-ButtonsFrame.BackgroundColor3 = Color3.fromRGB(15,15,15)
-ButtonsFrame.ScrollBarThickness = 6
-ButtonsFrame.CanvasSize = UDim2.new(0,0,0,0)
-ButtonsFrame.ClipsDescendants = true
-
-local grid = Instance.new("UIGridLayout", ButtonsFrame)
-grid.CellSize = UDim2.new(0, 90, 0, 28)
-grid.CellPadding = UDim2.new(0, 6, 0, 6)
-grid.FillDirectionMaxCells = 2
-grid.SortOrder = Enum.SortOrder.LayoutOrder
-grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
-grid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	local sizeY = grid.AbsoluteContentSize.Y
-	ButtonsFrame.CanvasSize = UDim2.new(0, 0, 0, sizeY + 12)
-end)
-
--------------------------------------------------------------------
--- Drag & minimize
--------------------------------------------------------------------
-local isMinimized = false
-MinimizeButton.MouseButton1Click:Connect(function()
-	isMinimized = not isMinimized
-	local tweenSize = TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = isMinimized and minimizedSize or mainSize })
-	tweenSize:Play()
-	ContentFrame.Visible = not isMinimized
-	pcall(function() MinimizeButton.Text = isMinimized and "+" or "–" end)
-end)
-
-local Dragging, DragInput, DragStart, StartPos
-Header.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-		Dragging = true
-		DragStart = input.Position
-		StartPos = MainFrame.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				Dragging = false
-			end
-		end)
-	end
-end)
-Header.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
-		DragInput = input
-	end
-end)
-UserInputService.InputChanged:Connect(function(input)
-	if input == DragInput and Dragging then
-		local Delta = input.Position - DragStart
-		if input.UserInputType == Enum.UserInputType.Touch then
-			local newXOffset = StartPos.X.Offset + Delta.X
-			local newYOffset = StartPos.Y.Offset + Delta.Y
-			MainFrame.Position = UDim2.new(StartPos.X.Scale, newXOffset, StartPos.Y.Scale, newYOffset)
-		else
-			local screenSize = workspace.CurrentCamera.ViewportSize
-			local newXOffset = math.clamp(StartPos.X.Offset + Delta.X, 0, screenSize.X - MainFrame.Size.X.Offset)
-			local newYOffset = math.clamp(StartPos.Y.Offset + Delta.Y, 0, screenSize.Y - MainFrame.Size.Y.Offset)
-			MainFrame.Position = UDim2.new(StartPos.X.Scale, newXOffset, StartPos.Y.Scale, newYOffset)
-		end
-	end
-end)
-
--------------------------------------------------------------------
--- Utilitarios: detectar Character de Player
--------------------------------------------------------------------
-local function isPlayerCharacter(model)
-	for _, p in ipairs(Players:GetPlayers()) do
-		if p.Character == model then return true end
-	end
-	return false
-end
-
--------------------------------------------------------------------
--- Cache de NPCs (rápido)
--------------------------------------------------------------------
-local npcCache = {}
-local function addNPCToCache(model)
-	if not model or not model:IsA("Model") then return end
-	if isPlayerCharacter(model) then return end
-	local humanoid = model:FindFirstChildOfClass("Humanoid") or model:FindFirstChild("Humanoid")
-	if not humanoid then return end
-	npcCache[model] = true
-end
-local function removeNPCFromCache(model)
-	if not model or not model:IsA("Model") then return end
-	npcCache[model] = nil
-end
-
--- init cache
-for _, inst in ipairs(Workspace:GetDescendants()) do
-	if inst:IsA("Humanoid") then
-		local m = inst.Parent
-		if m and m:IsA("Model") and not isPlayerCharacter(m) then npcCache[m] = true end
-	end
-end
-Workspace.DescendantAdded:Connect(function(desc)
-	if desc:IsA("Humanoid") then
-		local m = desc.Parent
-		if m and m:IsA("Model") then addNPCToCache(m) end
-	elseif desc:IsA("Model") and desc:FindFirstChildOfClass("Humanoid") then
-		addNPCToCache(desc)
-	end
-end)
-Workspace.DescendantRemoving:Connect(function(desc)
-	if desc:IsA("Humanoid") then
-		local m = desc.Parent
-		if m and m:IsA("Model") then removeNPCFromCache(m) end
-	elseif desc:IsA("Model") then removeNPCFromCache(desc) end
-end)
-local function getAllNPCs()
-	local out = {}
-	for model,_ in pairs(npcCache) do
-		if model and model.Parent then table.insert(out, model) else npcCache[model] = nil end
-	end
-	return out
-end
-
--------------------------------------------------------------------
--- Autocompletado animado + debounce + navegación
--------------------------------------------------------------------
-local suggestionDebounced = false
-local lastPendingText = nil
-local suggestionButtons = {}
-local selectedIndex = 0
-
-local function clearSuggestions()
-	for _, child in ipairs(SuggestionsList:GetChildren()) do
-		if child:IsA("TextButton") or child:IsA("Frame") then child:Destroy() end
-	end
-	suggestionButtons = {}
-	SuggestionsList.CanvasSize = UDim2.new(0,0,0,0)
-	selectedIndex = 0
-end
-
-local function setSelectedIndex(idx)
-	for i, btn in ipairs(suggestionButtons) do
+ do
 		if btn and btn:IsA("TextButton") then
 			TweenService:Create(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad), {BackgroundColor3 = Color3.fromRGB(30,30,30)}):Play()
 			btn.TextColor3 = Color3.fromRGB(255,255,255)
@@ -642,55 +385,54 @@ local function executeCommand(command)
 			end)
 
 		elseif command == "T objetive" then
-    -- Arreglado: aplica a players y NPCs por igual (usa 'targets' calculado antes)
-    local alreadyExecuted = {}
-    local function runForTarget(p)
-        if alreadyExecuted[p] then return end
-        alreadyExecuted[p] = true
+			-- Arreglado: aplica a players y NPCs por igual (usa 'targets' calculado antes)
+			local alreadyExecuted = {}
+			local function runForTarget(p)
+				if alreadyExecuted[p] then return end
+				alreadyExecuted[p] = true
 
-        local function getTargetCharacter(p)
-            if p:IsA("Player") then
-                local char = p.Character
-                if char and char:FindFirstChild("Humanoid") then
-                    return char
-                end
-            elseif p:IsA("Model") then
-                local humanoid = p:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    return p
-                end
-            end
-            return nil
+				local function getTargetCharacter(p)
+    if p:IsA("Player") then
+        local char = p.Character
+        if char and char:FindFirstChild("Humanoid") then
+            return char
         end
-
-        local targetChar = getTargetCharacter(p)  -- ← ESTA LÍNEA ES LA QUE FALTABA EN TU ORIGINAL
-
-        if targetChar and targetChar:FindFirstChildOfClass("Humanoid") then
-            local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
-            local args = {
-                [1] = {
-                    ["Humanoid"] = humanoid,
-                    ["Head"] = targetChar:FindFirstChild("Head"),
-                    ["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
-                    ["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
-                    ["Character"] = targetChar
-                },
-                [2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
-                [3] = (targetChar.Status and targetChar.Status.ModeActive) or nil,
-                [4] = targetChar.Status,
-                [5] = false
-            }
-            pcall(function()
-                if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Transform then
-                    ReplicatedStorage._BindableEvents.Transform:InvokeServer(unpack(args))
-                end
-            end)
+    elseif p:IsA("Model") then
+        local humanoid = p:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            return p
         end
     end
-
-    -- ejecuta para cada objetivo resuelto
-    for _, p in ipairs(targets) do runForTarget(p) end
+    return nil
 end
+
+				if targetChar and targetChar:FindFirstChildOfClass("Humanoid") then
+					local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
+					local args = {
+						[1] = {
+							["Humanoid"] = humanoid,
+							["Head"] = targetChar:FindFirstChild("Head"),
+							["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
+							["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
+							["Character"] = targetChar
+						},
+						[2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
+						[3] = (targetChar.Status and targetChar.Status.ModeActive) or nil,
+						[4] = targetChar.Status,
+						[5] = false
+					}
+					pcall(function()
+						if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Transform then
+							ReplicatedStorage._BindableEvents.Transform:InvokeServer(unpack(args))
+						end
+					end)
+				end
+			end
+
+			-- ejecuta para cada objetivo resuelto
+			for _, p in ipairs(targets) do runForTarget(p) end
+		end
+	end
 
 	StarterGui:SetCore("SendNotification", { Title="🐉Custom", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
 end
