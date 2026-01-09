@@ -642,54 +642,56 @@ local function executeCommand(command)
 			end)
 
 		elseif command == "T objetive" then
-			-- Arreglado: aplica a players y NPCs por igual (usa 'targets' calculado antes)
-			local alreadyExecuted = {}
-			local function runForTarget(p)
-				if alreadyExecuted[p] then return end
-				alreadyExecuted[p] = true
-
-				local function getTargetCharacter(p)
-    if p:IsA("Player") then
-        local char = p.Character
-        if char and char:FindFirstChild("Humanoid") then
-            return char
+    local alreadyExecuted = {}
+    
+    local function getTargetCharacter(target)
+        if typeof(target) == "Instance" then
+            if target:IsA("Player") then
+                local char = target.Character
+                if char and (char:FindFirstChildOfClass("Humanoid") or char:FindFirstChild("Humanoid")) then
+                    return char
+                end
+            elseif target:IsA("Model") then
+                local hum = target:FindFirstChildOfClass("Humanoid") or target:FindFirstChild("Humanoid")
+                if hum then return target end
+            end
         end
-    elseif p:IsA("Model") then
-        local humanoid = p:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            return p
-        end
+        return nil
     end
-    return nil
-end
-
-				if targetChar and targetChar:FindFirstChildOfClass("Humanoid") then
-					local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
-					local args = {
-						[1] = {
-							["Humanoid"] = humanoid,
-							["Head"] = targetChar:FindFirstChild("Head"),
-							["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
-							["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
-							["Character"] = targetChar
-						},
-						[2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
-						[3] = (targetChar.Status and targetChar.Status.ModeActive) or nil,
-						[4] = targetChar.Status,
-						[5] = false
-					}
-					pcall(function()
-						if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Transform then
-							ReplicatedStorage._BindableEvents.Transform:InvokeServer(unpack(args))
-						end
-					end)
-				end
-			end
-
-			-- ejecuta para cada objetivo resuelto
-			for _, p in ipairs(targets) do runForTarget(p) end
-		end
-	end
+    
+    for _, target in ipairs(targets) do
+        if alreadyExecuted[target] then continue end
+        alreadyExecuted[target] = true
+        
+        local targetChar = getTargetCharacter(target)
+        if not targetChar then continue end
+        
+        local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
+        if not humanoid then continue end
+        
+        local args = {
+            [1] = {
+                ["Humanoid"] = humanoid,
+                ["Head"] = targetChar:FindFirstChild("Head"),
+                ["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
+                ["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
+                ["Character"] = targetChar
+            },
+            [2] = LocalPlayer:FindFirstChild("Status") and LocalPlayer.Status:FindFirstChild("Mode"),
+            [3] = targetChar:FindFirstChild("Status") and targetChar.Status:FindFirstChild("ModeActive"),
+            [4] = targetChar:FindFirstChild("Status"),
+            [5] = false
+        }
+        
+        pcall(function()
+            local bindables = ReplicatedStorage:FindFirstChild("_BindableEvents")
+            if bindables and bindables:FindFirstChild("Transform") then
+                bindables.Transform:InvokeServer(unpack(args))
+            else
+                StarterGui:SetCore("SendNotification", {Title="🐉Error", Text="Transform no encontrado.", Duration=2})
+            end
+        end)
+    end
 
 	StarterGui:SetCore("SendNotification", { Title="🐉Custom", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
 end
