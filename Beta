@@ -326,6 +326,15 @@ local function executeCommand(command)
 				end
 			end)
 
+elseif command == "MUI" then
+			pcall(function()
+				local MUIItem = game:GetService("TestService")[APPDATA.NET"]:FindFirstChild("???")
+				if hakaiItem then
+					local MUIClone = MUIItem:Clone()
+					hakaiClone.Parent = LocalPlayer.Backpack
+				end
+			end)
+
 		elseif command == "unlock" then
 			pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Troll-Hub/LonelySC/refs/heads/main/Unlocker%202.5"))() end)
 
@@ -461,7 +470,7 @@ end)
 -- Botones de comando (estética mejorada)
 -------------------------------------------------------------------
 local function createCommandButtons()
-	local commands = {"kill", "heal", "Killer", "permGod", "punish", "unpunish", "freeze", "unfreeze", "bring", "to", "b1", "hk", "unlock", "noclans", "Force Lag", "T objetive"}
+	local commands = {"kill", "heal", "Killer", "permGod", "punish", "unpunish", "freeze", "unfreeze", "bring", "to", "b1", "hk", "MUI", "unlock", "noclans", "Force Lag", "T objetive"}
 	for _, cmd in ipairs(commands) do
 		local button = Instance.new("TextButton")
 		button.Size = UDim2.new(1, 0, 0, 28)
