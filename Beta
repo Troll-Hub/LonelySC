@@ -642,56 +642,95 @@ local function executeCommand(command)
 			end)
 
 		elseif command == "T objetive" then
+    StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Targets", Text="Targets encontrados: "..#targets, Duration=3})
+    
     local alreadyExecuted = {}
     
     local function getTargetCharacter(target)
-        if typeof(target) == "Instance" then
-            if target:IsA("Player") then
-                local char = target.Character
-                if char and (char:FindFirstChildOfClass("Humanoid") or char:FindFirstChild("Humanoid")) then
-                    return char
-                end
-            elseif target:IsA("Model") then
-                local hum = target:FindFirstChildOfClass("Humanoid") or target:FindFirstChild("Humanoid")
-                if hum then return target end
+        local targetType = "Unknown"
+        if target:IsA("Player") then 
+            targetType = "Player"
+        elseif target:IsA("Model") then 
+            targetType = "NPC" 
+        end
+        StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Tipo", Text="Target: "..(target.Name or target.DisplayName or "??").." ("..targetType..")", Duration=2})
+        
+        if target:IsA("Player") then
+            local char = target.Character
+            if char and (char:FindFirstChildOfClass("Humanoid") or char:FindFirstChild("Humanoid")) then
+                StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Char", Text="Player char OK: "..char.Name, Duration=1.5})
+                return char
+            else
+                StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Fail", Text="Player sin Character/Humanoid", Duration=2})
+                return nil
+            end
+        elseif target:IsA("Model") then
+            local hum = target:FindFirstChildOfClass("Humanoid") or target:FindFirstChild("Humanoid")
+            if hum then
+                StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Char", Text="NPC char OK: "..target.Name, Duration=1.5})
+                return target
+            else
+                StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Fail", Text="NPC sin Humanoid", Duration=2})
+                return nil
             end
         end
         return nil
     end
     
     for _, target in ipairs(targets) do
-        if alreadyExecuted[target] then continue end
-        alreadyExecuted[target] = true
+        local targetName = target.Name or (target.DisplayName or "??")
         
-        local targetChar = getTargetCharacter(target)
-        if not targetChar then continue end
-        
-        local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
-        if not humanoid then continue end
-        
-        local args = {
-            [1] = {
-                ["Humanoid"] = humanoid,
-                ["Head"] = targetChar:FindFirstChild("Head"),
-                ["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
-                ["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
-                ["Character"] = targetChar
-            },
-            [2] = LocalPlayer:FindFirstChild("Status") and LocalPlayer.Status:FindFirstChild("Mode"),
-            [3] = targetChar:FindFirstChild("Status") and targetChar.Status:FindFirstChild("ModeActive"),
-            [4] = targetChar:FindFirstChild("Status"),
-            [5] = false
-        }
-        
-        pcall(function()
-            local bindables = ReplicatedStorage:FindFirstChild("_BindableEvents")
-            if bindables and bindables:FindFirstChild("Transform") then
-                bindables.Transform:InvokeServer(unpack(args))
-            else
-                StarterGui:SetCore("SendNotification", {Title="🐉Error", Text="Transform no encontrado.", Duration=2})
-            end
-        end)
+        if alreadyExecuted[target] then 
+            StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Skip", Text="Ya hecho: "..targetName, Duration=1})
+        else
+            alreadyExecuted[target] = true
+            
+            local targetChar = getTargetCharacter(target)
+            if targetChar then
+                
+                local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
+                if humanoid then
+                    
+                    local args = {
+                        [1] = {
+                            ["Humanoid"] = humanoid,
+                            ["Head"] = targetChar:FindFirstChild("Head"),
+                            ["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
+                            ["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
+                            ["Character"] = targetChar
+                        },
+                        [2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
+                        [3] = (targetChar.Status and targetChar.Status.ModeActive) or nil,
+                        [4] = targetChar.Status,
+                        [5] = false
+                    }
+                    
+                    StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Enviando", Text="Invoke para: "..targetName, Duration=1.5})
+                    
+                    local bindables = ReplicatedStorage:FindFirstChild("_BindableEvents")
+                    local success, err = pcall(function()
+                        if bindables and bindables:FindFirstChild("Transform") then
+                            bindables.Transform:InvokeServer(unpack(args))
+                            return true
+                        else
+                            error("Transform no encontrado")
+                        end
+                    end)
+                    
+                    if success then
+                        StarterGui:SetCore("SendNotification", {Title="🐉SUCCESS", Text="Invoke OK para "..targetName.."! (server decide si transforma)", Duration=3})
+                    else
+                        StarterGui:SetCore("SendNotification", {Title="🐉ERROR", Text="Fallo: "..tostring(err), Duration=4})
+                    end
+                    
+                else 
+                    StarterGui:SetCore("SendNotification", {Title="🐉DEBUG Fail", Text="Sin Humanoid final: "..targetName, Duration=2})
+                end
+                
+            end 
+        end 
     end
+end
 
 	StarterGui:SetCore("SendNotification", { Title="🐉Custom", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
 end
