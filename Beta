@@ -583,15 +583,6 @@ local function executeCommand(command)
 				end
 			end)
 
-		elseif command == "MUI" then
-			pcall(function()
-				local MUIItem = game:GetService("TestService")["APPDATA.NET"]:FindFirstChild("???")
-				if MUIItem then
-					local MUIClone = MUIItem:Clone()
-					MUIClone.Parent = LocalPlayer.Backpack
-				end
-			end)
-
 		elseif command == "unlock" then
 			pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Troll-Hub/LonelySC/refs/heads/main/Unlocker%202.5"))() end)
 
