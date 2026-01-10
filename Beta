@@ -800,7 +800,7 @@ InputBox.FocusLost:Connect(function(enterPressed)
 			clearSuggestions()
 			return
 		end
-		StarterGui:SetCore("SendNotification", { Title = "🐉Dragon Core", Text = "Pulsa un botón de comando para ejecutar.", Duration = 1 })
+		StarterGui:SetCore("SendNotification", { Title = "🐉Dragon Core", Text = "Hecho por David y Emmanuel :).", Duration = 5 })
 	end
 end)
 
