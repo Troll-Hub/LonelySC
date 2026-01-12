@@ -691,7 +691,7 @@ end
 		end
 	end
 
-	StarterGui:SetCore("SendNotification", { Title="🐉Custom", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
+	StarterGui:SetCore("SendNotification", { Title="🐉Creado por David y Emmanuel", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
 end
 
 -------------------------------------------------------------------
