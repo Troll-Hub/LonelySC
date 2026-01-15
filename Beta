@@ -397,7 +397,7 @@ local function spawnParticleEffect(button)
 		particle.Size = UDim2.new(0,6,0,6)
 		particle.Position = UDim2.new(0.5,0,0.5,0)
 		particle.AnchorPoint = Vector2.new(0.5,0.5)
-		particle.BackgroundTransparency = 1
+		particle.BackgroundTransparency = 0
 		particle.Image = "rbxassetid://2795790"
 		particle.ImageColor3 = Color3.new(math.random(), math.random(), math.random())
 		particle.Parent = button
@@ -450,7 +450,7 @@ local function executeCommand(command)
 	local targetText = InputBox.Text
 	local targets = getTargets(targetText)
 	if #targets == 0 then
-		StarterGui:SetCore("SendNotification", { Title = "Admin", Text = "Objetivo no encontrado.", Duration = 1 })
+		StarterGui:SetCore("SendNotification", { Title = "🐉Cmds", Text = "Objetivo no encontrado.", Duration = 1 })
 		return
 	end
 
@@ -526,7 +526,7 @@ local function executeCommand(command)
 					end)
 				end
 			else
-				StarterGui:SetCore("SendNotification", { Title="Admin", Text="punish solo válido para jugadores.", Duration=1 })
+				StarterGui:SetCore("SendNotification", { Title="🐉Cmds", Text="punish solo válido para jugadores.", Duration=1 })
 			end
 
 		elseif command == "unpunish" then
@@ -594,7 +594,7 @@ local function executeCommand(command)
 					end
 				end)
 			else
-				StarterGui:SetCore("SendNotification", { Title = "Admin", Text = "El objetivo no tiene personaje válido.", Duration = 1 })
+				StarterGui:SetCore("SendNotification", { Title = "Invalido", Text = "El objetivo no tiene personaje válido.", Duration = 1 })
 			end
 
 		elseif command == "permGod" then
@@ -691,7 +691,7 @@ end
 		end
 	end
 
-	StarterGui:SetCore("SendNotification", { Title="🐉Creado por David y Emmanuel", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
+	StarterGui:SetCore("SendNotification", { Title="🐉Cmds", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
 end
 
 -------------------------------------------------------------------
@@ -800,7 +800,7 @@ InputBox.FocusLost:Connect(function(enterPressed)
 			clearSuggestions()
 			return
 		end
-		StarterGui:SetCore("SendNotification", { Title = "🐉Dragon Core", Text = "Hecho por David y Emmanuel.", Duration = 5 })
+		StarterGui:SetCore("SendNotification", { Title = "🐉Dragon Core", Text = "Hecho por David y Emmanuel.", Duration = 1 })
 	end
 end)
 
