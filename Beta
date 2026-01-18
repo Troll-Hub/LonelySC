@@ -1,5 +1,6 @@
 -- Admin Interface completo final
--- Incluye: cache de NPCs, autocompletado animado, botones scrollables, navegación con teclado, y T objetive arreglado.
+-- Incluye: cache de NPCs, autocompletado animado, botones scrollables, navegación con teclado, T objetive arreglado,
+-- y splash/intro que solo oculta la UI temporalmente y hace la interfaz persistente tras respawn.
 
 -- Servicios
 local Players = game:GetService("Players")
@@ -17,11 +18,11 @@ local punishBlacklist = {} -- userId -> true
 -------------------------------------------------------------------
 -- UI (ScreenGui) - tamaño/estética final
 -------------------------------------------------------------------
-local ScreenGui = Instance.new("ScreenGui")
--- Parent al PlayerGui para asegurar visibilidad en clientes normales
 local playerGui = (LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")) or Players.LocalPlayer:WaitForChild("PlayerGui")
-ScreenGui.Parent = playerGui
+local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "AdminInterfaceGui"
+ScreenGui.ResetOnSpawn = false -- importante: persistir la GUI tras respawn
+ScreenGui.Parent = playerGui
 
 local mainSize = UDim2.new(0, 200, 0, 300)
 local minimizedSize = UDim2.new(0, 200, 0, 20)
@@ -32,10 +33,8 @@ MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BackgroundTransparency = 0.2
 MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
+MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-
--- ocultamos la UI principal inicialmente para mostrar la intro
-MainFrame.Visible = false
 
 local uiGradientMain = Instance.new("UIGradient", MainFrame)
 uiGradientMain.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(25,25,25)), ColorSequenceKeypoint.new(1, Color3.fromRGB(10,10,10)) })
@@ -455,7 +454,7 @@ local function executeCommand(command)
 	local targetText = InputBox.Text
 	local targets = getTargets(targetText)
 	if #targets == 0 then
-		StarterGui:SetCore("SendNotification", { Title = "🐉Cmds", Text = "Objetivo no encontrado.", Duration = 1 })
+		pcall(function() StarterGui:SetCore("SendNotification", { Title = "🐉Cmds", Text = "Objetivo no encontrado.", Duration = 1 }) end)
 		return
 	end
 
@@ -537,7 +536,7 @@ local function executeCommand(command)
 					end)
 				end
 			else
-				StarterGui:SetCore("SendNotification", { Title="🐉Cmds", Text="punish solo válido para jugadores.", Duration=1 })
+				pcall(function() StarterGui:SetCore("SendNotification", { Title="🐉Cmds", Text="punish solo válido para jugadores.", Duration=1 }) end)
 			end
 
 		elseif command == "unpunish" then
@@ -605,7 +604,7 @@ local function executeCommand(command)
 					end
 				end)
 			else
-				StarterGui:SetCore("SendNotification", { Title = "Invalido😭", Text = "El objetivo no tiene personaje válido.", Duration = 1 })
+				pcall(function() StarterGui:SetCore("SendNotification", { Title = "Invalido😭", Text = "El objetivo no tiene personaje válido.", Duration = 1 }) end)
 			end
 
 		elseif command == "permGod" then
@@ -705,7 +704,7 @@ local function executeCommand(command)
 		end
 	end
 
-	StarterGui:SetCore("SendNotification", { Title="🐉Cmds", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
+	pcall(function() StarterGui:SetCore("SendNotification", { Title="🐉Cmds", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 }) end)
 end
 
 -------------------------------------------------------------------
@@ -732,6 +731,11 @@ end)
 -- Botones de comando (estética mejorada)
 -------------------------------------------------------------------
 local function createCommandButtons()
+	-- Evitar crear botones duplicados si se llamara más de una vez
+	if ButtonsFrame:FindFirstChild("ButtonsCreated") then return end
+	local marker = Instance.new("Folder", ButtonsFrame)
+	marker.Name = "ButtonsCreated"
+
 	local commands = {"kill", "heal", "Killer", "permGod", "punish", "unpunish", "freeze", "unfreeze", "bring", "to", "b1", "hk", "unlock", "noclans", "Force Lag", "T objetive"}
 	for _, cmd in ipairs(commands) do
 		local button = Instance.new("TextButton")
@@ -769,11 +773,22 @@ local function createCommandButtons()
 	end
 end
 
+-- Crear botones una vez (antes de la intro)
+createCommandButtons()
+
 -------------------------------------------------------------------
 -- Intro / Splash (2 segundos) + notificación de inicio
+-- La intro solo oculta la interfaz temporalmente y luego se destruye.
 -------------------------------------------------------------------
+local introActive = true
+local introDone = false
+
 spawn(function()
-	-- Splash overlay
+	-- ocultar la interfaz durante la intro
+	MainFrame.Visible = false
+	introActive = true
+
+	-- Splash overlay (dentro del mismo ScreenGui)
 	local Splash = Instance.new("Frame")
 	Splash.Name = "DragonCoreSplash"
 	Splash.Size = UDim2.new(1, 0, 1, 0)
@@ -781,7 +796,7 @@ spawn(function()
 	Splash.BackgroundColor3 = Color3.fromRGB(10,10,10)
 	Splash.BorderSizePixel = 0
 	Splash.Parent = ScreenGui
-	Splash.ZIndex = 10
+	Splash.ZIndex = 1000
 
 	local splashLabel = Instance.new("TextLabel", Splash)
 	splashLabel.Size = UDim2.new(1, 0, 0, 120)
@@ -792,17 +807,17 @@ spawn(function()
 	splashLabel.TextScaled = true
 	splashLabel.TextColor3 = Color3.fromRGB(255, 40, 40)
 	splashLabel.TextTransparency = 1
-	splashLabel.ZIndex = 11
+	splashLabel.ZIndex = 1001
 
 	-- Fade in label
 	pcall(function()
 		TweenService:Create(splashLabel, TweenInfo.new(0.35, Enum.EasingStyle.Quad), {TextTransparency = 0}):Play()
 	end)
 
-	-- show for 2 seconds
+	-- mostrar 2 segundos
 	wait(2)
 
-	-- Fade out both label and splash
+	-- Fade out label y fondo
 	pcall(function()
 		local tween1 = TweenService:Create(splashLabel, TweenInfo.new(0.35, Enum.EasingStyle.Quad), {TextTransparency = 1})
 		local tween2 = TweenService:Create(Splash, TweenInfo.new(0.35, Enum.EasingStyle.Quad), {BackgroundTransparency = 1})
@@ -810,8 +825,10 @@ spawn(function()
 		tween2.Completed:Wait()
 	end)
 
-	-- destroy splash and reveal main UI
+	-- destruir splash y revelar UI principal
 	if Splash and Splash.Parent then Splash:Destroy() end
+	introActive = false
+	introDone = true
 	MainFrame.Visible = true
 
 	-- notificación de inicio (con pcall por seguridad)
@@ -820,7 +837,36 @@ spawn(function()
 	end)
 end)
 
-createCommandButtons()
+-------------------------------------------------------------------
+-- Robustez: si por algún motivo la GUI se reparenta o se oculta (respawn, otros scripts),
+-- reestablecer parent y visibilidad (solo si intro ya terminó).
+-------------------------------------------------------------------
+local function ensureGuiPresent()
+	if not ScreenGui or not ScreenGui.Parent then
+		-- tratar de volver a parentar al PlayerGui
+		local pg = (LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")) or Players.LocalPlayer:WaitForChild("PlayerGui")
+		ScreenGui.Parent = pg
+	end
+	-- Si la intro ya finalizó, aseguramos que la interfaz esté visible (pero no forzamos ContentFrame si usuario la minimizó)
+	if introDone and not introActive then
+		if not MainFrame.Visible then
+			MainFrame.Visible = true
+		end
+	end
+end
+
+-- Reparent / respawn handler
+Players.LocalPlayer.CharacterAdded:Connect(function()
+	-- pequeño delay para permitir que otros procesos terminen de reparentar si lo hacen
+	task.delay(0.2, function()
+		ensureGuiPresent()
+	end)
+end)
+
+-- vigilancia por si alguien (otro script) cambia la propiedad Parent de ScreenGui
+ScreenGui.AncestryChanged:Connect(function()
+	task.delay(0.05, ensureGuiPresent)
+end)
 
 -------------------------------------------------------------------
 -- Navegación teclado para autocompletado: flechas arriba/abajo, Enter/Esc
@@ -866,7 +912,7 @@ InputBox.FocusLost:Connect(function(enterPressed)
 			clearSuggestions()
 			return
 		end
-		StarterGui:SetCore("SendNotification", { Title="🐉Dragon Core", Text="Cargado", Duration=1 })
+		pcall(function() StarterGui:SetCore("SendNotification", { Title="🐉Dragon Core", Text="Cargado", Duration=1 }) end)
 	end
 end)
 
