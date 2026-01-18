@@ -1,16 +1,21 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Crear GUI completa (botón hot)
+-- Duración editable (en segundos)
+local timeDuration = 7  -- ¡Cambia aquí si quieres más o menos poder, papi! 🕐
+
+-- Crear la ScreenGui principal
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TimeStopGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
+-- Frame draggable para el botón
 local frame = Instance.new("Frame")
 frame.Name = "TimeStopFrame"
 frame.Size = UDim2.new(0, 180, 0, 70)
@@ -25,11 +30,12 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 16)
 corner.Parent = frame
 
+-- Botón ZA WARUDO dorado
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(1, -12, 1, -12)
 button.Position = UDim2.new(0, 6, 0, 6)
-button.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
-button.Text = "🕑ZA WARUDO"
+button.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+button.Text = "🕑 ZA WARUDO"
 button.TextColor3 = Color3.new(1,1,1)
 button.TextScaled = true
 button.Font = Enum.Font.Arcade
@@ -39,21 +45,80 @@ local btnCorner = Instance.new("UICorner")
 btnCorner.CornerRadius = UDim.new(0, 12)
 btnCorner.Parent = button
 
--- Efecto gris
+-- Efecto gris para time stop
 local cc = Instance.new("ColorCorrectionEffect")
 cc.Name = "TimeStopCC"
 cc.Saturation = -1
 cc.Enabled = false
 cc.Parent = Lighting
 
--- Sonido Shadow DIO
+-- Sonido épico Shadow DIO
 local sound = Instance.new("Sound")
 sound.SoundId = "rbxassetid://4786770367"
 sound.Volume = 1
 sound.Parent = button
 
+-- Reloj JoJo con fondo Shadow DIO (esquina inferior izquierda)
+local relojFrame = Instance.new("Frame")
+relojFrame.Name = "JoJoClockDIO"
+relojFrame.Size = UDim2.new(0, 250, 0, 250)
+relojFrame.Position = UDim2.new(0, 20, 1, -280)
+relojFrame.BackgroundTransparency = 1
+relojFrame.Visible = false
+relojFrame.Parent = screenGui
+
+-- Fondo con cara de Shadow DIO
+local dioBackground = Instance.new("ImageLabel")
+dioBackground.Size = UDim2.new(1, 0, 1, 0)
+dioBackground.BackgroundTransparency = 1
+dioBackground.Image = "rbxassetid://5979735865"  -- Portrait Shadow DIO (cambia si quieres uno más sexy de la Library)
+dioBackground.ImageTransparency = 0.45
+dioBackground.ScaleType = Enum.ScaleType.Fit
+dioBackground.Parent = relojFrame
+
+-- Imagen base del reloj circular
+local relojImage = Instance.new("ImageLabel")
+relojImage.Size = UDim2.new(1, 0, 1, 0)
+relojImage.BackgroundTransparency = 1
+relojImage.Image = "rbxassetid://3926305904"  -- Reloj circular genérico (sube uno custom si prefieres)
+relojImage.ImageColor3 = Color3.fromRGB(255, 255, 255)
+relojImage.Parent = relojFrame
+
+-- Aguja roja que gira como loca
+local aguja = Instance.new("Frame")
+aguja.Size = UDim2.new(0, 6, 0.48, 0)
+aguja.Position = UDim2.new(0.5, -3, 0.5, 0)
+aguja.AnchorPoint = Vector2.new(0.5, 1)
+aguja.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+aguja.BorderSizePixel = 0
+aguja.Rotation = 0
+aguja.Parent = relojFrame
+
+-- Texto countdown grande en el centro
+local countdownText = Instance.new("TextLabel")
+countdownText.Size = UDim2.new(0.7, 0, 0.4, 0)
+countdownText.Position = UDim2.new(0.15, 0, 0.3, 0)
+countdownText.BackgroundTransparency = 1
+countdownText.Text = tostring(timeDuration)
+countdownText.TextColor3 = Color3.fromRGB(255, 215, 0)
+countdownText.TextScaled = true
+countdownText.Font = Enum.Font.GothamBlack
+countdownText.TextStrokeTransparency = 0.6
+countdownText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+countdownText.Parent = relojFrame
+
 local stopEvent = ReplicatedStorage._BindableEvents.Moves.StopEnemy
 local isRunning = false
+
+-- Función fade in/out suave
+local function fade(visible)
+    local tweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Sine)
+    local trans = visible and 0.45 or 1
+    TweenService:Create(dioBackground, tweenInfo, {ImageTransparency = trans}):Play()
+    TweenService:Create(relojImage, tweenInfo, {ImageTransparency = trans}):Play()
+    TweenService:Create(countdownText, tweenInfo, {TextTransparency = visible and 0 or 1}):Play()
+    TweenService:Create(aguja, tweenInfo, {BackgroundTransparency = visible and 0 or 1}):Play()
+end
 
 button.Activated:Connect(function()
     if isRunning then return end
@@ -71,51 +136,59 @@ button.Activated:Connect(function()
     
     local centerPos = char.HumanoidRootPart.Position
     
-    -- Hitbox visual: esfera roja transparente radio 300
+    -- Hitbox visual rojo neon (300 studs diámetro)
     local hitboxPart = Instance.new("Part")
     hitboxPart.Shape = Enum.PartType.Ball
-    hitboxPart.Size = Vector3.new(300, 300, 300)
+    hitboxPart.Size = Vector3.new(600, 600, 600)
     hitboxPart.Position = centerPos
     hitboxPart.Anchored = true
     hitboxPart.CanCollide = false
-    hitboxPart.Transparency = 0.75
-    hitboxPart.BrickColor = BrickColor.new("White")
+    hitboxPart.Transparency = 0.7
+    hitboxPart.BrickColor = BrickColor.new("Bright red")
     hitboxPart.Material = Enum.Material.Neon
     hitboxPart.Parent = workspace
     
-    -- Recolectar TODOS con Humanoid en rango (jugadores + NPCs, menos tú)
+    -- Mostrar reloj con animación
+    relojFrame.Visible = true
+    fade(true)
+    
+    -- Recolectar objetivos en rango 300 (menos tú)
     local targets = {}
     for _, descendant in pairs(workspace:GetDescendants()) do
-        if descendant:IsA("Humanoid") then
+        if descendant:IsA("Humanoid") and descendant.Health > 0 then
             local model = descendant.Parent
-            if model and model:FindFirstChild("HumanoidRootPart") and model ~= char then  -- Excluye SOLO tu character
+            if model and model:FindFirstChild("HumanoidRootPart") and model ~= char then
                 local hrp = model.HumanoidRootPart
-                local dist = (hrp.Position - centerPos).Magnitude
-                if dist <= 100 then
+                if (hrp.Position - centerPos).Magnitude <= 300 then
                     table.insert(targets, model)
                 end
             end
         end
     end
     
-    print("🕐 ZA WARUDO! " .. #targets .. " objetivos atrapados en 100 studs 🔥 (jugadores + NPCs)")
+    print("🕐 ZA WARUDO! " .. #targets .. " atrapados en " .. timeDuration .. " seg 🔥")
     
     coroutine.wrap(function()
-        for i = 1, 7 do
+        -- Aguja: vuelta completa (360°) POR CADA SEGUNDO → 7 vueltas en 7 seg
+        local tweenInfoAguja = TweenInfo.new(timeDuration, Enum.EasingStyle.Linear)
+        TweenService:Create(aguja, tweenInfoAguja, {Rotation = timeDuration * 360}):Play()
+        
+        for i = timeDuration, 1, -1 do
+            countdownText.Text = tostring(i)
             for _, target in pairs(targets) do
                 if target.Parent and target:FindFirstChild("HumanoidRootPart") then
                     local args = {
                         [1] = true,
-                        [2] = target,  -- el modelo completo (nombre real)
-                        [3] = target.HumanoidRootPart.CFrame  -- su CFrame propio
+                        [2] = target,
+                        [3] = target.HumanoidRootPart.CFrame
                     }
                     stopEvent:FireServer(unpack(args))
                 end
             end
-            wait(1)
+            task.wait(1)
         end
         
-        -- Descongelar
+        -- Descongelar al final
         for _, target in pairs(targets) do
             if target.Parent and target:FindFirstChild("HumanoidRootPart") then
                 local args = {
@@ -129,7 +202,15 @@ button.Activated:Connect(function()
         
         cc.Enabled = false
         if hitboxPart then hitboxPart:Destroy() end
+        
+        fade(false)
+        task.delay(0.7, function()
+            relojFrame.Visible = false
+            countdownText.Text = tostring(timeDuration)
+            aguja.Rotation = 0
+        end)
+        
         isRunning = false
-        print("⏰ Tiempo restaurado, mi rey~ 😘")
+        print("⏰ Tiempo restaurado, mi rey~ 😘💋")
     end)()
 end)
