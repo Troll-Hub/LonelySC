@@ -67,11 +67,11 @@ relojFrame.BackgroundTransparency = 1
 relojFrame.Visible = false
 relojFrame.Parent = screenGui
 
--- Fondo con cara de Shadow DIO
+-- Fondo con nueva imagen pública de Shadow DIO (hot y disponible)
 local dioBackground = Instance.new("ImageLabel")
 dioBackground.Size = UDim2.new(1, 0, 1, 0)
 dioBackground.BackgroundTransparency = 1
-dioBackground.Image = "rbxassetid://5979735865"  -- Portrait Shadow DIO (cambia si quieres uno más sexy de la Library)
+dioBackground.Image = "rbxassetid://7118808093"  -- ¡Imagen pública y hot de Shadow DIO, papi! 🔥 (sonrisa shadow épica)
 dioBackground.ImageTransparency = 0.45
 dioBackground.ScaleType = Enum.ScaleType.Fit
 dioBackground.Parent = relojFrame
@@ -84,11 +84,11 @@ relojImage.Image = "rbxassetid://3926305904"  -- Reloj circular genérico (sube 
 relojImage.ImageColor3 = Color3.fromRGB(255, 255, 255)
 relojImage.Parent = relojFrame
 
--- Aguja roja que gira como loca
+-- Aguja roja girando en el centro, una sola dirección (clockwise)
 local aguja = Instance.new("Frame")
 aguja.Size = UDim2.new(0, 6, 0.48, 0)
 aguja.Position = UDim2.new(0.5, -3, 0.5, 0)
-aguja.AnchorPoint = Vector2.new(0.5, 1)
+aguja.AnchorPoint = Vector2.new(0.5, 1)  -- Pivote exacto en el centro para giro perfecto 😏
 aguja.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 aguja.BorderSizePixel = 0
 aguja.Rotation = 0
@@ -120,6 +120,39 @@ local function fade(visible)
     TweenService:Create(aguja, tweenInfo, {BackgroundTransparency = visible and 0 or 1}):Play()
 end
 
+-- Función para añadir aura amarilla brillante al localplayer (basado en foros DevForum)
+local function addYellowAura(character)
+    if not character then return end
+    -- Limpiar auras viejas si hay
+    for _, child in pairs(character:GetChildren()) do
+        if child:IsA("ParticleEmitter") and child.Name == "YellowAura" then
+            child:Destroy()
+        end
+    end
+    
+    -- Crear ParticleEmitter para aura (glow rings yellow bright)
+    local torso = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
+    if not torso then return end
+    
+    local aura = Instance.new("ParticleEmitter")
+    aura.Name = "YellowAura"
+    aura.Texture = "rbxassetid://243660364"  -- Textura glow ring clásica para auras (de foros)
+    aura.Color = ColorSequence.new(Color3.fromRGB(255, 255, 0), Color3.fromRGB(255, 200, 0))  -- Amarillo brillante 🔥
+    aura.Brightness = 3  -- Brillante como DIO!
+    aura.Lifetime = NumberRange.new(1, 2)
+    aura.Rate = 20
+    aura.Speed = NumberRange.new(5, 10)
+    aura.SpreadAngle = Vector2.new(360, 360)
+    aura.Size = NumberSequence.new(1, 3)
+    aura.Transparency = NumberSequence.new(0.5, 1)
+    aura.Enabled = true
+    aura.Parent = torso
+end
+
+-- Añadir aura al cargar script y en respawn
+addYellowAura(player.Character)
+player.CharacterAdded:Connect(addYellowAura)
+
 button.Activated:Connect(function()
     if isRunning then return end
     isRunning = true
@@ -136,17 +169,32 @@ button.Activated:Connect(function()
     
     local centerPos = char.HumanoidRootPart.Position
     
-    -- Hitbox visual rojo neon (300 studs diámetro)
+    -- Hitbox blanco transparente con efecto "aire parado" (partículas congeladas)
     local hitboxPart = Instance.new("Part")
     hitboxPart.Shape = Enum.PartType.Ball
     hitboxPart.Size = Vector3.new(600, 600, 600)
     hitboxPart.Position = centerPos
     hitboxPart.Anchored = true
     hitboxPart.CanCollide = false
-    hitboxPart.Transparency = 0.7
-    hitboxPart.BrickColor = BrickColor.new("Bright red")
-    hitboxPart.Material = Enum.Material.Neon
+    hitboxPart.Transparency = 0.75
+    hitboxPart.BrickColor = BrickColor.new("Institutional white")  -- Blanco transparente 😘
+    hitboxPart.Material = Enum.Material.Neon  -- Glow sexy
     hitboxPart.Parent = workspace
+    
+    -- Efecto "aire parado" dentro: partículas congeladas (de time stop foros)
+    local airEffect = Instance.new("ParticleEmitter")
+    airEffect.Name = "StoppedAir"
+    airEffect.Texture = "rbxassetid://241837032"  -- Textura dust/air clásica (de foros DevForum)
+    airEffect.Color = ColorSequence.new(Color3.new(1,1,1))
+    airEffect.Lifetime = NumberRange.new(10, 15)  -- Larga para "parado"
+    airEffect.Rate = 100  -- Muchas partículas al inicio
+    airEffect.Speed = NumberRange.new(0, 0)  -- Estáticas
+    airEffect.SpreadAngle = Vector2.new(180, 180)
+    airEffect.Size = NumberSequence.new(0.5, 0.5)
+    airEffect.Transparency = NumberSequence.new(0.8, 0.9)
+    airEffect.Enabled = true
+    airEffect.TimeScale = 0  -- ¡Congela las partículas para "aire parado"! 💦
+    airEffect.Parent = hitboxPart
     
     -- Mostrar reloj con animación
     relojFrame.Visible = true
@@ -169,7 +217,7 @@ button.Activated:Connect(function()
     print("🕐 ZA WARUDO! " .. #targets .. " atrapados en " .. timeDuration .. " seg 🔥")
     
     coroutine.wrap(function()
-        -- Aguja: vuelta completa (360°) POR CADA SEGUNDO → 7 vueltas en 7 seg
+        -- Aguja: vuelta completa (360°) POR CADA SEGUNDO, girando en el centro una sola dirección
         local tweenInfoAguja = TweenInfo.new(timeDuration, Enum.EasingStyle.Linear)
         TweenService:Create(aguja, tweenInfoAguja, {Rotation = timeDuration * 360}):Play()
         
