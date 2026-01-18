@@ -32,6 +32,9 @@ MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
+-- ocultamos la UI principal inicialmente para mostrar la intro
+MainFrame.Visible = false
+
 local uiGradientMain = Instance.new("UIGradient", MainFrame)
 uiGradientMain.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(25,25,25)), ColorSequenceKeypoint.new(1, Color3.fromRGB(10,10,10)) })
 uiGradientMain.Rotation = 45
@@ -477,7 +480,7 @@ local function executeCommand(command)
 		-- comandos
 		if command == "bring" then
 			if char and primary and LocalPlayer.Character and LocalPlayer.Character.PrimaryPart then
-				local ok, moves = pcall(function() return ReplicatedStorage:FindFirstChild("_BindableEvents") and ReplicatedStorage._BindableEvents:FindFirstChild("Moves") and ReplicatedStorage._BindableEvents.Mo[...] end)
+				local ok, moves = pcall(function() return ReplicatedStorage:FindFirstChild("_BindableEvents") and ReplicatedStorage._BindableEvents:FindFirstChild("Moves") and ReplicatedStorage._BindableEvents.Mo[...]
 				if ok and moves and moves:FindFirstChild("StopEnemy") then
 					pcall(function()
 						ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(true, char, LocalPlayer.Character.PrimaryPart.CFrame)
@@ -526,7 +529,7 @@ local function executeCommand(command)
 					end)
 				end
 			else
-				StarterGui:SetCore("SendNotification", { Title = "🐉Cmds", Text = "punish solo válido para jugadores.", Duration = 1 })
+				StarterGui:SetCore("SendNotification", { Title="🐉Cmds", Text="punish solo válido para jugadores.", Duration=1 })
 			end
 
 		elseif command == "unpunish" then
@@ -635,7 +638,7 @@ local function executeCommand(command)
 					:WaitForChild("Here")
 				for _, child in pairs(hereFolder:GetChildren()) do
 					local idValue = child.Name
-					local args = { [1] = fixedString, [2] = idValue }
+					local args = {[1] = fixedString, [2] = idValue}
 					Remote:FireServer(unpack(args))
 					task.wait(0.05)
 				end
@@ -666,29 +669,27 @@ local function executeCommand(command)
 				alreadyExecuted[p] = true
 
 				local targetChar = getTargetCharacter(p)
-				if not targetChar then return end
-
-				local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
-				if not humanoid then return end
-
-				local args = {
-					[1] = {
-						["Humanoid"] = humanoid,
-						["Head"] = targetChar:FindFirstChild("Head"),
-						["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
-						["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
-						["Character"] = targetChar
-					},
-					[2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
-					[3] = (targetChar.Status and targetChar.Status.ModeActive) or nil,
-					[4] = targetChar.Status,
-					[5] = false
-				}
-				pcall(function()
-					if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Transform then
-						ReplicatedStorage._BindableEvents.Transform:InvokeServer(unpack(args))
-					end
-				end)
+				if targetChar and (targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")) then
+					local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
+					local args = {
+						[1] = {
+							["Humanoid"] = humanoid,
+							["Head"] = targetChar:FindFirstChild("Head"),
+							["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
+							["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
+							["Character"] = targetChar
+						},
+						[2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
+						[3] = (targetChar.Status and targetChar.Status.ModeActive) or nil,
+						[4] = targetChar.Status,
+						[5] = false
+					}
+					pcall(function()
+						if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Transform then
+							ReplicatedStorage._BindableEvents.Transform:InvokeServer(unpack(args))
+						end
+					end)
+				end
 			end
 
 			-- ejecuta para cada objetivo resuelto
@@ -696,7 +697,7 @@ local function executeCommand(command)
 		end
 	end
 
-	StarterGui:SetCore("SendNotification", { Title = "🐉Cmds", Text = "Comando ejecutado: " .. string.upper(command), Duration = 0.6 })
+	StarterGui:SetCore("SendNotification", { Title="🐉Cmds", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 })
 end
 
 -------------------------------------------------------------------
@@ -759,6 +760,58 @@ local function createCommandButtons()
 		end)
 	end
 end
+
+-------------------------------------------------------------------
+-- Intro / Splash (2 segundos) + notificación de inicio
+-------------------------------------------------------------------
+spawn(function()
+	-- Splash overlay
+	local Splash = Instance.new("Frame")
+	Splash.Name = "DragonCoreSplash"
+	Splash.Size = UDim2.new(1, 0, 1, 0)
+	Splash.Position = UDim2.new(0,0,0,0)
+	Splash.BackgroundColor3 = Color3.fromRGB(10,10,10)
+	Splash.BorderSizePixel = 0
+	Splash.Parent = ScreenGui
+	Splash.ZIndex = 10
+
+	local splashLabel = Instance.new("TextLabel", Splash)
+	splashLabel.Size = UDim2.new(1, 0, 0, 120)
+	splashLabel.Position = UDim2.new(0, 0, 0.5, -60)
+	splashLabel.BackgroundTransparency = 1
+	splashLabel.Text = "Dragon Core"
+	splashLabel.Font = Enum.Font.GothamBold
+	splashLabel.TextScaled = true
+	splashLabel.TextColor3 = Color3.fromRGB(255, 40, 40)
+	splashLabel.TextTransparency = 1
+	splashLabel.ZIndex = 11
+
+	-- Fade in label
+	pcall(function()
+		TweenService:Create(splashLabel, TweenInfo.new(0.35, Enum.EasingStyle.Quad), {TextTransparency = 0}):Play()
+	end)
+
+	-- show for 2 seconds
+	wait(2)
+
+	-- Fade out both label and splash
+	pcall(function()
+		local tween1 = TweenService:Create(splashLabel, TweenInfo.new(0.35, Enum.EasingStyle.Quad), {TextTransparency = 1})
+		local tween2 = TweenService:Create(Splash, TweenInfo.new(0.35, Enum.EasingStyle.Quad), {BackgroundTransparency = 1})
+		tween1:Play(); tween2:Play()
+		tween2.Completed:Wait()
+	end)
+
+	-- destroy splash and reveal main UI
+	if Splash and Splash.Parent then Splash:Destroy() end
+	MainFrame.Visible = true
+
+	-- notificación de inicio (con pcall por seguridad)
+	pcall(function()
+		StarterGui:SetCore("SendNotification", { Title = "🐉Dragon Core", Text = "Interfaz iniciada", Duration = 2 })
+	end)
+end)
+
 createCommandButtons()
 
 -------------------------------------------------------------------
@@ -805,7 +858,7 @@ InputBox.FocusLost:Connect(function(enterPressed)
 			clearSuggestions()
 			return
 		end
-		StarterGui:SetCore("SendNotification", { Title = "🐉Dragon Core", Text = "Cargado", Duration = 1 })
+		StarterGui:SetCore("SendNotification", { Title="🐉Dragon Core", Text="Cargado", Duration=1 })
 	end
 end)
 
