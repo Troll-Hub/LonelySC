@@ -18,7 +18,9 @@ local punishBlacklist = {} -- userId -> true
 -- UI (ScreenGui) - tamaño/estética final
 -------------------------------------------------------------------
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = game:GetService("CoreGui")
+-- Parent al PlayerGui para asegurar visibilidad en clientes normales
+local playerGui = (LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")) or Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.Parent = playerGui
 ScreenGui.Name = "AdminInterfaceGui"
 
 local mainSize = UDim2.new(0, 200, 0, 300)
@@ -480,7 +482,13 @@ local function executeCommand(command)
 		-- comandos
 		if command == "bring" then
 			if char and primary and LocalPlayer.Character and LocalPlayer.Character.PrimaryPart then
-				local ok, moves = pcall(function() return ReplicatedStorage:FindFirstChild("_BindableEvents") and ReplicatedStorage._BindableEvents:FindFirstChild("Moves") and ReplicatedStorage._BindableEvents.Mo[...]
+				-- arreglo: llamada segura para obtener moves
+				local ok, moves = pcall(function()
+					if ReplicatedStorage:FindFirstChild("_BindableEvents") and ReplicatedStorage._BindableEvents:FindFirstChild("Moves") then
+						return ReplicatedStorage._BindableEvents.Moves
+					end
+					return nil
+				end)
 				if ok and moves and moves:FindFirstChild("StopEnemy") then
 					pcall(function()
 						ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(true, char, LocalPlayer.Character.PrimaryPart.CFrame)
