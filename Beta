@@ -700,8 +700,238 @@ local function executeCommand(command)
 
 			for _, p in ipairs(targets) do runForTarget(p) end
 
-		elseif command == "Za warudo"
-pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Troll-Hub/LonelySC/refs/heads/main/Time"))() end)
+		elseif command == "Za warudo" then
+			-- Crear la Tool y el LocalScript robusto en PlayerScripts (evita error ToolMainModule)
+			spawn(function()
+				local backpack = LocalPlayer:FindFirstChild("Backpack") or LocalPlayer:WaitForChild("Backpack")
+				local playerScripts = LocalPlayer:FindFirstChild("PlayerScripts") or LocalPlayer:WaitForChild("PlayerScripts")
+
+				-- Evitar duplicados
+				if backpack:FindFirstChild("Za warudo!") or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Za warudo!")) then
+					pcall(function() StarterGui:SetCore("SendNotification", { Title="🐉Dragon Core", Text="Ya tienes Za warudo!", Duration=2 }) end)
+					return
+				end
+
+				wait(0.2)
+
+				-- TOOL con Handle verdadero pero invisible (para evitar colisiones visuales)
+				local tool = Instance.new("Tool")
+				tool.Name = "Za warudo!"
+				tool.RequiresHandle = true
+				tool.CanBeDropped = false
+
+				local handle = Instance.new("Part")
+				handle.Name = "Handle"
+				handle.Size = Vector3.new(1,1,1)
+				handle.Material = Enum.Material.Neon
+				handle.BrickColor = BrickColor.new("Gold")
+				handle.Transparency = 1 -- invisible
+				handle.CanCollide = false
+				handle.Massless = true
+				handle.Parent = tool
+
+				tool.Parent = backpack
+
+				-- Crear (o reemplazar) LocalScript en PlayerScripts que escucha la Tool y hace la lógica.
+				-- Si ya existe un script con el mismo nombre lo reemplazamos para evitar duplicados.
+				local scriptName = "ZaWarudoS"
+				if playerScripts:FindFirstChild(scriptName) then
+					pcall(function() playerScripts[scriptName]:Destroy() end)
+				end
+
+				local handler = Instance.new("LocalScript")
+				handler.Name = scriptName
+
+				handler.Source = [[
+-- ZaWarudoHandler (LocalScript en PlayerScripts)
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+-- Esperar tool en Backpack (puede moverse luego)
+local function waitForTool()
+    local backpack = player:WaitForChild("Backpack")
+    local tool = backpack:FindFirstChild("Za warudo!") or backpack:WaitForChild("Za warudo!")
+    return tool
+end
+
+-- Obtener StopEnemy (RemoteEvent/Bindable) de forma segura
+local function getStopEnemy()
+    local ok, be = pcall(function() return ReplicatedStorage:WaitForChild("_BindableEvents", 5) end)
+    if not ok or not be then return nil end
+    local ok2, moves = pcall(function() return be:WaitForChild("Moves", 5) end)
+    if not ok2 or not moves then return nil end
+    local ok3, stop = pcall(function() return moves:WaitForChild("StopEnemy", 5) end)
+    if not ok3 then return nil end
+    return stop
+end
+
+-- Efecto de pantalla y sonido local
+local function createOverlayAndSound()
+    local pg = player:WaitForChild("PlayerGui")
+    local overlay = Instance.new("ScreenGui")
+    overlay.Name = "ZaWarudoOverlay"
+    overlay.ResetOnSpawn = false
+    overlay.Parent = pg
+    overlay.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    local frame = Instance.new("Frame", overlay)
+    frame.Size = UDim2.new(1,0,1,0)
+    frame.Position = UDim2.new(0,0,0,0)
+    frame.BackgroundColor3 = Color3.fromRGB(64,64,64)
+    frame.BackgroundTransparency = 1
+    frame.BorderSizePixel = 0
+    frame.ZIndex = 1000
+
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(1, 0, 0, 120)
+    label.Position = UDim2.new(0, 0, 0.45, 0)
+    label.BackgroundTransparency = 1
+    label.Text = "ZA WARUDO!"
+    label.Font = Enum.Font.GothamBlack
+    label.TextScaled = true
+    label.TextColor3 = Color3.new(1,1,1)
+    label.TextTransparency = 1
+    label.ZIndex = 1001
+
+    pcall(function()
+        TweenService:Create(frame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {BackgroundTransparency = 0.45}):Play()
+        TweenService:Create(label, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {TextTransparency = 0}):Play()
+    end)
+
+    -- Reproducir sonido localmente (no bloquear la ejecución)
+    local sound = Instance.new("Sound", workspace)
+    sound.SoundId = "rbxassetid://1571597070"
+    sound.Volume = 1
+    pcall(function() sound:Play() end)
+
+    return overlay, sound
+end
+
+-- Ejecuta la congelación: TRUE 7 veces (1s intervalo) y finalmente FALSE una vez.
+local function doZaWarudo(tool)
+    local stopEnemy = getStopEnemy()
+    if not stopEnemy then
+        warn("ZaWarudo: StopEnemy not found")
+        return
+    end
+
+    local char = player.Character
+    if not char then return end
+    local primary = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+    if not primary then return end
+
+    local overlay, sound = createOverlayAndSound()
+
+    -- Recolectar targets: todos los Models con Humanoid/HRP excepto el localplayer
+    local targets = {}
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj:IsA("Model") and obj ~= char then
+            local human = obj:FindFirstChildOfClass("Humanoid") or obj:FindFirstChild("Humanoid")
+            local hrp = obj:FindFirstChild("HumanoidRootPart")
+            if human and hrp then
+                table.insert(targets, obj)
+            end
+        end
+    end
+
+    -- Ejecutar TRUE 7 veces con 1s de espera entre cada una
+    for i = 1, 7 do
+        for _, objetivo in ipairs(targets) do
+            pcall(function()
+                stopEnemy:FireServer(true, objetivo, primary.CFrame)
+            end)
+        end
+        wait(1)
+    end
+
+    -- UNFREEZE (FALSE) una sola vez
+    for _, objetivo in ipairs(targets) do
+        pcall(function()
+            stopEnemy:FireServer(false, objetivo, primary.CFrame)
+        end)
+    end
+
+    -- Fade out overlay y limpiar
+    pcall(function()
+        if sound and sound.Parent then sound:Stop() end
+        if overlay and overlay.Parent then
+            local frame = overlay:FindFirstChildWhichIsA("Frame")
+            local label = frame and frame:FindFirstChildWhichIsA("TextLabel")
+            if label then TweenService:Create(label, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {TextTransparency=1}):Play() end
+            if frame then TweenService:Create(frame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {BackgroundTransparency=1}):Play() end
+            wait(0.3)
+            pcall(function() overlay:Destroy() end)
+        end
+    end)
+end
+
+-- Conectar al tool (espera que exista en Backpack o Character)
+spawn(function()
+    while true do
+        local ok, tool = pcall(waitForTool)
+        if not ok or not tool then
+            wait(1)
+        else
+            -- Evitar conectar múltiples veces
+            if tool:GetAttribute("ZaWarudoHandlerConnected") then
+                break
+            end
+            tool:SetAttribute("ZaWarudoHandlerConnected", true)
+
+            local equipped = false
+            local inputConn = nil
+
+            local function onActivate()
+                -- Protección: no ejecutar sobre localplayer y asegurarnos de estar equipados
+                if not equipped then return end
+                -- Llamada principal
+                doZaWarudo(tool)
+            end
+
+            tool.Equipped:Connect(function()
+                equipped = true
+
+                -- Fallback: escuchar InputBegan para touch/click (funciona en móvil y PC).
+                inputConn = UserInputService.InputBegan:Connect(function(input, processed)
+                    if processed then return end
+                    if not equipped then return end
+                    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        onActivate()
+                    end
+                end)
+            end)
+
+            tool.Unequipped:Connect(function()
+                equipped = false
+                if inputConn then
+                    inputConn:Disconnect()
+                    inputConn = nil
+                end
+            end)
+
+            -- También conectar Tool.Activated (principal y más fiable)
+            tool.Activated:Connect(function()
+                onActivate()
+            end)
+
+            break
+        end
+    end
+end)
+]]
+
+				handler.Parent = playerScripts
+
+				-- notificación de confirmación
+				pcall(function()
+					StarterGui:SetCore("SendNotification", { Title = "🐉Dragon Core", Text = "Za warudo añadido al Backpack", Duration = 2 })
+				end)
+			end)
+		end
+	end
 
 	pcall(function() StarterGui:SetCore("SendNotification", { Title="🐉Cmds", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 }) end)
 end
