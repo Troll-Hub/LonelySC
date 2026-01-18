@@ -1,0 +1,135 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Crear GUI completa (botón hot)
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TimeStopGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Name = "TimeStopFrame"
+frame.Size = UDim2.new(0, 180, 0, 70)
+frame.Position = UDim2.new(0.5, -90, 0.5, -35)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+frame.BackgroundTransparency = 0.3
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 16)
+corner.Parent = frame
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(1, -12, 1, -12)
+button.Position = UDim2.new(0, 6, 0, 6)
+button.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+button.Text = "ZA WARUDO 300"
+button.TextColor3 = Color3.new(1,1,1)
+button.TextScaled = true
+button.Font = Enum.Font.Arcade
+button.Parent = frame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 12)
+btnCorner.Parent = button
+
+-- Efecto gris
+local cc = Instance.new("ColorCorrectionEffect")
+cc.Name = "TimeStopCC"
+cc.Saturation = -1
+cc.Enabled = false
+cc.Parent = Lighting
+
+-- Sonido Shadow DIO
+local sound = Instance.new("Sound")
+sound.SoundId = "rbxassetid://4786770367"
+sound.Volume = 1
+sound.Parent = button
+
+local stopEvent = ReplicatedStorage._BindableEvents.Moves.StopEnemy
+local isRunning = false
+
+button.Activated:Connect(function()
+    if isRunning then return end
+    isRunning = true
+    
+    sound:Play()
+    cc.Enabled = true
+    
+    local char = player.Character
+    if not (char and char:FindFirstChild("HumanoidRootPart")) then
+        cc.Enabled = false
+        isRunning = false
+        return
+    end
+    
+    local centerPos = char.HumanoidRootPart.Position
+    
+    -- Hitbox visual: esfera roja transparente radio 300
+    local hitboxPart = Instance.new("Part")
+    hitboxPart.Shape = Enum.PartType.Ball
+    hitboxPart.Size = Vector3.new(300, 300, 300)
+    hitboxPart.Position = centerPos
+    hitboxPart.Anchored = true
+    hitboxPart.CanCollide = false
+    hitboxPart.Transparency = 0.75
+    hitboxPart.BrickColor = BrickColor.new("Bright red")
+    hitboxPart.Material = Enum.Material.Neon
+    hitboxPart.Parent = workspace
+    
+    -- Recolectar TODOS con Humanoid en rango (jugadores + NPCs, menos tú)
+    local targets = {}
+    for _, descendant in pairs(workspace:GetDescendants()) do
+        if descendant:IsA("Humanoid") then
+            local model = descendant.Parent
+            if model and model:FindFirstChild("HumanoidRootPart") and model ~= char then  -- Excluye SOLO tu character
+                local hrp = model.HumanoidRootPart
+                local dist = (hrp.Position - centerPos).Magnitude
+                if dist <= 100 then
+                    table.insert(targets, model)
+                end
+            end
+        end
+    end
+    
+    print("🕐 ZA WARUDO! " .. #targets .. " objetivos atrapados en 300 studs 🔥 (jugadores + NPCs)")
+    
+    coroutine.wrap(function()
+        for i = 1, 7 do
+            for _, target in pairs(targets) do
+                if target.Parent and target:FindFirstChild("HumanoidRootPart") then
+                    local args = {
+                        [1] = true,
+                        [2] = target,  -- el modelo completo (nombre real)
+                        [3] = target.HumanoidRootPart.CFrame  -- su CFrame propio
+                    }
+                    stopEvent:FireServer(unpack(args))
+                end
+            end
+            wait(1)
+        end
+        
+        -- Descongelar
+        for _, target in pairs(targets) do
+            if target.Parent and target:FindFirstChild("HumanoidRootPart") then
+                local args = {
+                    [1] = false,
+                    [2] = target,
+                    [3] = target.HumanoidRootPart.CFrame
+                }
+                stopEvent:FireServer(unpack(args))
+            end
+        end
+        
+        cc.Enabled = false
+        if hitboxPart then hitboxPart:Destroy() end
+        isRunning = false
+        print("⏰ Tiempo restaurado, mi rey~ 😘")
+    end)()
+end)
