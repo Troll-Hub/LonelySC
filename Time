@@ -63,7 +63,7 @@ local relojFrame = Instance.new("Frame")
 relojFrame.Name = "JoJoClockDIO"
 relojFrame.Size = UDim2.new(0, 250, 0, 250)
 relojFrame.Position = UDim2.new(0, 20, 1, -280)
-relojFrame.BackgroundTransparency = 1
+relojFrame.BackgroundTransparency = 0
 relojFrame.Visible = false
 relojFrame.Parent = screenGui
 
@@ -79,8 +79,8 @@ dioBackground.Parent = relojFrame
 -- Imagen base del reloj circular
 local relojImage = Instance.new("ImageLabel")
 relojImage.Size = UDim2.new(1, 0, 1, 0)
-relojImage.BackgroundTransparency = 1
-relojImage.Image = "rbxassetid://3926305904"
+relojImage.BackgroundTransparency = 0
+relojImage.Image = "rbxassetid://4279786905"
 relojImage.ImageColor3 = Color3.fromRGB(255, 255, 255)
 relojImage.Parent = relojFrame
 
