@@ -649,7 +649,7 @@ local function executeCommand(command)
 				alreadyExecuted[p] = true
 
 				local function getTargetCharacter(p)
-    if p:IsPlayer = true then
+    if p:IsA("Player") then
         local char = p.Character
         if char and char:FindFirstChild("Humanoid") then
             return char
