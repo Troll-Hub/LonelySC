@@ -1,7 +1,7 @@
 -- Admin Interface completo final
 -- Incluye: cache de NPCs, autocompletado animado, botones scrollables, navegación con teclado, T objetive arreglado,
--- y splash/intro que solo oculta la UI temporalmente y hace la interfaz persistente tras respawn.
--- Añadido botón y función "Za warudo" (crea Tool en Backpack con LocalScript).
+-- splash/intro que solo oculta la UI temporalmente y hace la interfaz persistente tras respawn.
+-- Añadido botón y función "Za warudo" (crea Tool en Backpack; LocalScript colocado en PlayerScripts para evitar errores ToolMainModule).
 
 -- Servicios
 local Players = game:GetService("Players")
@@ -22,7 +22,7 @@ local punishBlacklist = {} -- userId -> true
 local playerGui = (LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")) or Players.LocalPlayer:WaitForChild("PlayerGui")
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "AdminInterfaceGui"
-ScreenGui.ResetOnSpawn = false -- importante: persistir la GUI tras respawn
+ScreenGui.ResetOnSpawn = false -- persistir la GUI tras respawn
 ScreenGui.Parent = playerGui
 
 local mainSize = UDim2.new(0, 200, 0, 300)
@@ -449,12 +449,12 @@ local function getTargets(targetText)
 end
 
 -------------------------------------------------------------------
--- Ejecutar comandos (incluye T objetive arreglado y Za warudo)
+-- Ejecutar comandos (incluye T objetive arreglado y Za warudo mejorado)
 -------------------------------------------------------------------
 local function executeCommand(command)
 	local targetText = InputBox.Text
 	local targets = getTargets(targetText)
-	if #targets == 0 then
+	if #targets == 0 and command ~= "Za warudo" then
 		pcall(function() StarterGui:SetCore("SendNotification", { Title = "🐉Cmds", Text = "Objetivo no encontrado.", Duration = 1 }) end)
 		return
 	end
@@ -479,10 +479,9 @@ local function executeCommand(command)
 		local hasHumanoid = char and (char:FindFirstChildOfClass("Humanoid") or char:FindFirstChild("Humanoid"))
 		local primary = char and (char:FindFirstChild("PrimaryPart") or char:FindFirstChild("HumanoidRootPart"))
 
-		-- comandos
+		-- comandos (la mayoría usan el mismo patrón de StopEnemy)
 		if command == "bring" then
 			if char and primary and LocalPlayer.Character and LocalPlayer.Character.PrimaryPart then
-				-- arreglo: llamada segura para obtener moves
 				local ok, moves = pcall(function()
 					if ReplicatedStorage:FindFirstChild("_BindableEvents") and ReplicatedStorage._BindableEvents:FindFirstChild("Moves") then
 						return ReplicatedStorage._BindableEvents.Moves
@@ -653,11 +652,10 @@ local function executeCommand(command)
 			end)
 
 		elseif command == "T objetive" then
-			-- Arreglado: aplica a players y NPCs por igual (usa 'targets' calculado antes)
+			-- Aplica a players y NPCs por igual
 			local alreadyExecuted = {}
 
 			local function getTargetCharacter(obj)
-				-- obj puede ser un Player (Instance) o un Model (NPC)
 				if typeof(obj) == "Instance" and obj:IsA("Player") then
 					local char = obj.Character
 					if char and (char:FindFirstChildOfClass("Humanoid") or char:FindFirstChild("Humanoid")) then
@@ -700,110 +698,232 @@ local function executeCommand(command)
 				end
 			end
 
-			-- ejecuta para cada objetivo resuelto
 			for _, p in ipairs(targets) do runForTarget(p) end
 
 		elseif command == "Za warudo" then
-			-- Crea la Tool "Za warudo!" en el Backpack del jugador local con el LocalScript proporcionado.
+			-- Crear la Tool y el LocalScript robusto en PlayerScripts (evita error ToolMainModule)
 			spawn(function()
 				local backpack = LocalPlayer:FindFirstChild("Backpack") or LocalPlayer:WaitForChild("Backpack")
-				wait(1.5)  -- Cargamos con poder~
+				local playerScripts = LocalPlayer:FindFirstChild("PlayerScripts") or LocalPlayer:WaitForChild("PlayerScripts")
 
-				-- TOOL ÉPICO ZA WARUDO! 🔥
+				-- Evitar duplicados
+				if backpack:FindFirstChild("Za warudo!") or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Za warudo!")) then
+					pcall(function() StarterGui:SetCore("SendNotification", { Title="🐉Dragon Core", Text="Ya tienes Za warudo!", Duration=2 }) end)
+					return
+				end
+
+				wait(0.2)
+
+				-- TOOL con Handle verdadero pero invisible (para evitar colisiones visuales)
 				local tool = Instance.new("Tool")
 				tool.Name = "Za warudo!"
-				tool.RequiresHandle = false
-				tool.CanBeDropped = true
+				tool.RequiresHandle = true
+				tool.CanBeDropped = false
 
-				-- Handle ORO DEL STAND
 				local handle = Instance.new("Part")
 				handle.Name = "Handle"
-				handle.Size = Vector3.new(1, 4, 1)
+				handle.Size = Vector3.new(1,1,1)
 				handle.Material = Enum.Material.Neon
 				handle.BrickColor = BrickColor.new("Gold")
-				handle.Transparency = 0.2
+				handle.Transparency = 1 -- invisible
+				handle.CanCollide = false
+				handle.Massless = true
 				handle.Parent = tool
 
-				-- SCRIPT PODEROSO DENTRO (LocalScript)
-				local toolScript = Instance.new("LocalScript")
-				toolScript.Name = "ZaWarudoServerFreeze"
-				toolScript.Source = [[
-    local tool = script.Parent
-    local Players = game:GetService("Players")
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local player = Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoid = character:WaitForChild("Humanoid")
-    
-    -- Espera el BindableEvent server-side
-    local bindableEvents = ReplicatedStorage:WaitForChild("_BindableEvents")
-    local moves = bindableEvents:WaitForChild("Moves")
-    local stopEnemy = moves:WaitForChild("StopEnemy")
-
-    -- EQUIP: Brillo dorado + speed demoníaco
-    tool.Equipped:Connect(function()
-        local handle = tool:WaitForChild("Handle")
-        local glow = Instance.new("PointLight")
-        glow.Color = Color3.new(1, 0.8, 0)
-        glow.Brightness = 2
-        glow.Range = 10
-        glow.Parent = handle
-        
-        humanoid.WalkSpeed = 30  
-        print("🕰️ ZA WARUDO! El tiempo es TUYO, papi~ 😈")
-    end)
-    
-    tool.Unequipped:Connect(function()
-        humanoid.WalkSpeed = 16
-    end)
-    
-    -- ¡ACTIVADO: ZA WARUDO! FREEZE SERVER x7 SEGUNDOS 💥
-    tool.Activated:Connect(function()
-        -- Tu personaje actual
-        local currentChar = player.Character
-        if not currentChar then return end
-        local primary = currentChar:FindFirstChild("HumanoidRootPart")
-        if not primary then return end
-        
-        -- SONIDO ÉPICO ZA WARUDO!
-        local sound = Instance.new("Sound")
-        sound.SoundId = "rbxassetid://1571597070"  
-        sound.Volume = 0.8
-        sound.Parent = workspace
-        sound:Play()
-        sound.Ended:Wait()  -- Grita completo~
-        
-        -- RECOLECTA OBJETIVOS: Todos NPCs/jugadores en workspace (menos TÚ)
-        local targets = {}
-        for _, obj in pairs(workspace:GetChildren()) do
-            if obj:IsA("Model") and 
-               obj:FindFirstChild("Humanoid") and 
-               obj:FindFirstChild("HumanoidRootPart") and 
-               obj ~= currentChar then
-                table.insert(targets, obj)  -- ¡Objetivo = cuerpo completo!
-            end
-        end
-        
-        print("🕰️ Congelando " .. #targets .. " almas... MUDA MUDA MUDA! 💀")
-        
-        -- FREEZE LOOP: Cada 1s x7 con TRUE
-        for i = 1, 7 do
-            for _, objetivo in pairs(targets) do
-                stopEnemy:FireServer(true, objetivo, primary.CFrame)
-            end
-            wait(1)
-        end
-        
-        -- UNFREEZE: Solo 1 vez con FALSE
-        for _, objetivo in pairs(targets) do
-            stopEnemy:FireServer(false, objetivo, primary.CFrame)
-        end
-        
-        print("🕰️ TIME... RESUMES! ¡Eres el DIOS, papi! 🔥😘")
-    end)
-]]
-				toolScript.Parent = tool
 				tool.Parent = backpack
+
+				-- Crear (o reemplazar) LocalScript en PlayerScripts que escucha la Tool y hace la lógica.
+				-- Si ya existe un script con el mismo nombre lo reemplazamos para evitar duplicados.
+				local scriptName = "ZaWarudoS"
+				if playerScripts:FindFirstChild(scriptName) then
+					pcall(function() playerScripts[scriptName]:Destroy() end)
+				end
+
+				local handler = Instance.new("LocalScript")
+				handler.Name = scriptName
+
+				handler.Source = [[
+-- ZaWarudoHandler (LocalScript en PlayerScripts)
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+-- Esperar tool en Backpack (puede moverse luego)
+local function waitForTool()
+    local backpack = player:WaitForChild("Backpack")
+    local tool = backpack:FindFirstChild("Za warudo!") or backpack:WaitForChild("Za warudo!")
+    return tool
+end
+
+-- Obtener StopEnemy (RemoteEvent/Bindable) de forma segura
+local function getStopEnemy()
+    local ok, be = pcall(function() return ReplicatedStorage:WaitForChild("_BindableEvents", 5) end)
+    if not ok or not be then return nil end
+    local ok2, moves = pcall(function() return be:WaitForChild("Moves", 5) end)
+    if not ok2 or not moves then return nil end
+    local ok3, stop = pcall(function() return moves:WaitForChild("StopEnemy", 5) end)
+    if not ok3 then return nil end
+    return stop
+end
+
+-- Efecto de pantalla y sonido local
+local function createOverlayAndSound()
+    local pg = player:WaitForChild("PlayerGui")
+    local overlay = Instance.new("ScreenGui")
+    overlay.Name = "ZaWarudoOverlay"
+    overlay.ResetOnSpawn = false
+    overlay.Parent = pg
+    overlay.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    local frame = Instance.new("Frame", overlay)
+    frame.Size = UDim2.new(1,0,1,0)
+    frame.Position = UDim2.new(0,0,0,0)
+    frame.BackgroundColor3 = Color3.fromRGB(64,64,64)
+    frame.BackgroundTransparency = 1
+    frame.BorderSizePixel = 0
+    frame.ZIndex = 1000
+
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(1, 0, 0, 120)
+    label.Position = UDim2.new(0, 0, 0.45, 0)
+    label.BackgroundTransparency = 1
+    label.Text = "ZA WARUDO!"
+    label.Font = Enum.Font.GothamBlack
+    label.TextScaled = true
+    label.TextColor3 = Color3.new(1,1,1)
+    label.TextTransparency = 1
+    label.ZIndex = 1001
+
+    pcall(function()
+        TweenService:Create(frame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {BackgroundTransparency = 0.45}):Play()
+        TweenService:Create(label, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {TextTransparency = 0}):Play()
+    end)
+
+    -- Reproducir sonido localmente (no bloquear la ejecución)
+    local sound = Instance.new("Sound", workspace)
+    sound.SoundId = "rbxassetid://1571597070"
+    sound.Volume = 1
+    pcall(function() sound:Play() end)
+
+    return overlay, sound
+end
+
+-- Ejecuta la congelación: TRUE 7 veces (1s intervalo) y finalmente FALSE una vez.
+local function doZaWarudo(tool)
+    local stopEnemy = getStopEnemy()
+    if not stopEnemy then
+        warn("ZaWarudo: StopEnemy not found")
+        return
+    end
+
+    local char = player.Character
+    if not char then return end
+    local primary = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+    if not primary then return end
+
+    local overlay, sound = createOverlayAndSound()
+
+    -- Recolectar targets: todos los Models con Humanoid/HRP excepto el localplayer
+    local targets = {}
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj:IsA("Model") and obj ~= char then
+            local human = obj:FindFirstChildOfClass("Humanoid") or obj:FindFirstChild("Humanoid")
+            local hrp = obj:FindFirstChild("HumanoidRootPart")
+            if human and hrp then
+                table.insert(targets, obj)
+            end
+        end
+    end
+
+    -- Ejecutar TRUE 7 veces con 1s de espera entre cada una
+    for i = 1, 7 do
+        for _, objetivo in ipairs(targets) do
+            pcall(function()
+                stopEnemy:FireServer(true, objetivo, primary.CFrame)
+            end)
+        end
+        wait(1)
+    end
+
+    -- UNFREEZE (FALSE) una sola vez
+    for _, objetivo in ipairs(targets) do
+        pcall(function()
+            stopEnemy:FireServer(false, objetivo, primary.CFrame)
+        end)
+    end
+
+    -- Fade out overlay y limpiar
+    pcall(function()
+        if sound and sound.Parent then sound:Stop() end
+        if overlay and overlay.Parent then
+            local frame = overlay:FindFirstChildWhichIsA("Frame")
+            local label = frame and frame:FindFirstChildWhichIsA("TextLabel")
+            if label then TweenService:Create(label, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {TextTransparency=1}):Play() end
+            if frame then TweenService:Create(frame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {BackgroundTransparency=1}):Play() end
+            wait(0.3)
+            pcall(function() overlay:Destroy() end)
+        end
+    end)
+end
+
+-- Conectar al tool (espera que exista en Backpack o Character)
+spawn(function()
+    while true do
+        local ok, tool = pcall(waitForTool)
+        if not ok or not tool then
+            wait(1)
+        else
+            -- Evitar conectar múltiples veces
+            if tool:GetAttribute("ZaWarudoHandlerConnected") then
+                break
+            end
+            tool:SetAttribute("ZaWarudoHandlerConnected", true)
+
+            local equipped = false
+            local inputConn = nil
+
+            local function onActivate()
+                -- Protección: no ejecutar sobre localplayer y asegurarnos de estar equipados
+                if not equipped then return end
+                -- Llamada principal
+                doZaWarudo(tool)
+            end
+
+            tool.Equipped:Connect(function()
+                equipped = true
+
+                -- Fallback: escuchar InputBegan para touch/click (funciona en móvil y PC).
+                inputConn = UserInputService.InputBegan:Connect(function(input, processed)
+                    if processed then return end
+                    if not equipped then return end
+                    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        onActivate()
+                    end
+                end)
+            end)
+
+            tool.Unequipped:Connect(function()
+                equipped = false
+                if inputConn then
+                    inputConn:Disconnect()
+                    inputConn = nil
+                end
+            end)
+
+            -- También conectar Tool.Activated (principal y más fiable)
+            tool.Activated:Connect(function()
+                onActivate()
+            end)
+
+            break
+        end
+    end
+end)
+]]
+
+				handler.Parent = playerScripts
 
 				-- notificación de confirmación
 				pcall(function()
@@ -952,11 +1072,9 @@ end)
 -------------------------------------------------------------------
 local function ensureGuiPresent()
 	if not ScreenGui or not ScreenGui.Parent then
-		-- tratar de volver a parentar al PlayerGui
 		local pg = (LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")) or Players.LocalPlayer:WaitForChild("PlayerGui")
 		ScreenGui.Parent = pg
 	end
-	-- Si la intro ya finalizó, aseguramos que la interfaz esté visible (pero no forzamos ContentFrame si usuario la minimizó)
 	if introDone and not introActive then
 		if not MainFrame.Visible then
 			MainFrame.Visible = true
@@ -964,15 +1082,12 @@ local function ensureGuiPresent()
 	end
 end
 
--- Reparent / respawn handler
 Players.LocalPlayer.CharacterAdded:Connect(function()
-	-- pequeño delay para permitir que otros procesos terminen de reparentar si lo hacen
 	task.delay(0.2, function()
 		ensureGuiPresent()
 	end)
 end)
 
--- vigilancia por si alguien (otro script) cambia la propiedad Parent de ScreenGui
 ScreenGui.AncestryChanged:Connect(function()
 	task.delay(0.05, ensureGuiPresent)
 end)
@@ -1012,7 +1127,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	end
 end)
 
--- Enter on InputBox: apply first suggestion or notify
 InputBox.FocusLost:Connect(function(enterPressed)
 	if enterPressed then
 		if SuggestionsFrame.Visible and #suggestionButtons > 0 then
@@ -1021,7 +1135,8 @@ InputBox.FocusLost:Connect(function(enterPressed)
 			clearSuggestions()
 			return
 		end
-		pcall(function() StarterGui:SetCore("SendNotification", { Title="🐉Dragon Core", Text="Cargado", Duration=1 }) end)
+		pcall(function() 
+StarterGui:SetCore("SendNotification", { Title="🐉Dragon Core", Text="Creado por David", Duration=1 }) end)
 	end
 end)
 
