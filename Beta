@@ -477,7 +477,7 @@ local function executeCommand(command)
 		-- comandos
 		if command == "bring" then
 			if char and primary and LocalPlayer.Character and LocalPlayer.Character.PrimaryPart then
-				local ok, moves = pcall(function() return ReplicatedStorage:FindFirstChild("_BindableEvents") and ReplicatedStorage._BindableEvents:FindFirstChild("Moves") and ReplicatedStorage._BindableEvents.Moves end)
+				local ok, moves = pcall(function() return ReplicatedStorage:FindFirstChild("_BindableEvents") and ReplicatedStorage._BindableEvents:FindFirstChild("Moves") and ReplicatedStorage._BindableEvents.Mo[...]
 				if ok and moves and moves:FindFirstChild("StopEnemy") then
 					pcall(function()
 						ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(true, char, LocalPlayer.Character.PrimaryPart.CFrame)
@@ -644,26 +644,29 @@ local function executeCommand(command)
 		elseif command == "T objetive" then
 			-- Arreglado: aplica a players y NPCs por igual (usa 'targets' calculado antes)
 			local alreadyExecuted = {}
+
+			local function getTargetCharacter(obj)
+				-- obj puede ser un Player (Instance) o un Model (NPC)
+				if typeof(obj) == "Instance" and obj:IsA("Player") then
+					local char = obj.Character
+					if char and (char:FindFirstChildOfClass("Humanoid") or char:FindFirstChild("Humanoid")) then
+						return char
+					end
+				elseif typeof(obj) == "Instance" and obj:IsA("Model") then
+					local humanoid = obj:FindFirstChildOfClass("Humanoid") or obj:FindFirstChild("Humanoid")
+					if humanoid then
+						return obj
+					end
+				end
+				return nil
+			end
+
 			local function runForTarget(p)
 				if alreadyExecuted[p] then return end
 				alreadyExecuted[p] = true
 
-				local function getTargetCharacter(p)
-    if p:IsA("Player") then
-        local char = p.Character
-        if char and char:FindFirstChild("Humanoid") then
-            return char
-        end
-    elseif p:IsA("Model") then
-        local humanoid = p:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            return p
-        end
-    end
-    return nil
-end
-
-				if targetChar and targetChar:FindFirstChildOfClass("Humanoid") then
+				local targetChar = getTargetCharacter(p)
+				if targetChar and (targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")) then
 					local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
 					local args = {
 						[1] = {
