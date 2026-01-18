@@ -174,7 +174,7 @@ UserInputService.InputChanged:Connect(function(input)
 			local newYOffset = StartPos.Y.Offset + Delta.Y
 			MainFrame.Position = UDim2.new(StartPos.X.Scale, newXOffset, StartPos.Y.Scale, newYOffset)
 		else
-			local screenSize = Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize or Vector2.new(1920,1080)
+			local screenSize = workspace.CurrentCamera.ViewportSize
 			local newXOffset = math.clamp(StartPos.X.Offset + Delta.X, 0, screenSize.X - MainFrame.Size.X.Offset)
 			local newYOffset = math.clamp(StartPos.Y.Offset + Delta.Y, 0, screenSize.Y - MainFrame.Size.Y.Offset)
 			MainFrame.Position = UDim2.new(StartPos.X.Scale, newXOffset, StartPos.Y.Scale, newYOffset)
@@ -477,13 +477,7 @@ local function executeCommand(command)
 		-- comandos
 		if command == "bring" then
 			if char and primary and LocalPlayer.Character and LocalPlayer.Character.PrimaryPart then
-				-- comprobar seguridad y obtener "Moves" si existe
-				local ok, moves = pcall(function()
-					if ReplicatedStorage:FindFirstChild("_BindableEvents") then
-						return ReplicatedStorage._BindableEvents:FindFirstChild("Moves")
-					end
-					return nil
-				end)
+				local ok, moves = pcall(function() return ReplicatedStorage:FindFirstChild("_BindableEvents") and ReplicatedStorage._BindableEvents:FindFirstChild("Moves") and ReplicatedStorage._BindableEvents.Mo[...]
 				if ok and moves and moves:FindFirstChild("StopEnemy") then
 					pcall(function()
 						ReplicatedStorage._BindableEvents.Moves.StopEnemy:FireServer(true, char, LocalPlayer.Character.PrimaryPart.CFrame)
@@ -809,7 +803,7 @@ InputBox.FocusLost:Connect(function(enterPressed)
 			clearSuggestions()
 			return
 		end
-		StarterGui:SetCore("SendNotification", { Title = "🐉Dragon Core", Text = "Cargado", Duration = 1 })
+		StarterGui:SetCore("SendNotification", { Title="🐉Dragon Core", Text="Cargado", Duration=1 })
 	end
 end)
 
