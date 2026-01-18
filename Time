@@ -28,8 +28,8 @@ corner.Parent = frame
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(1, -12, 1, -12)
 button.Position = UDim2.new(0, 6, 0, 6)
-button.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-button.Text = "ZA WARUDO 300"
+button.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+button.Text = "🕑ZA WARUDO"
 button.TextColor3 = Color3.new(1,1,1)
 button.TextScaled = true
 button.Font = Enum.Font.Arcade
@@ -79,7 +79,7 @@ button.Activated:Connect(function()
     hitboxPart.Anchored = true
     hitboxPart.CanCollide = false
     hitboxPart.Transparency = 0.75
-    hitboxPart.BrickColor = BrickColor.new("Bright red")
+    hitboxPart.BrickColor = BrickColor.new("White")
     hitboxPart.Material = Enum.Material.Neon
     hitboxPart.Parent = workspace
     
@@ -98,7 +98,7 @@ button.Activated:Connect(function()
         end
     end
     
-    print("🕐 ZA WARUDO! " .. #targets .. " objetivos atrapados en 300 studs 🔥 (jugadores + NPCs)")
+    print("🕐 ZA WARUDO! " .. #targets .. " objetivos atrapados en 100 studs 🔥 (jugadores + NPCs)")
     
     coroutine.wrap(function()
         for i = 1, 7 do
