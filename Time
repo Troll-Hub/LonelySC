@@ -1,13 +1,12 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Lighting = game:GetService("Lighting")
 local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 -- Duración editable (en segundos)
-local timeDuration = 7
+local timeDuration = 7  -- ¡Cambia aquí si quieres más tiempo de dominio, papi! 🕐
 
 -- Crear la ScreenGui principal
 local screenGui = Instance.new("ScreenGui")
@@ -45,59 +44,23 @@ local btnCorner = Instance.new("UICorner")
 btnCorner.CornerRadius = UDim.new(0, 12)
 btnCorner.Parent = button
 
--- Efecto gris para time stop
-local cc = Instance.new("ColorCorrectionEffect")
-cc.Name = "TimeStopCC"
-cc.Saturation = -1
-cc.Enabled = false
-cc.Parent = Lighting
-
 -- Sonido épico Shadow DIO
 local sound = Instance.new("Sound")
 sound.SoundId = "rbxassetid://4786770367"
 sound.Volume = 1
 sound.Parent = button
 
--- Reloj JoJo con fondo Shadow DIO
-local relojFrame = Instance.new("Frame")
-relojFrame.Name = "JoJoClockDIO"
-relojFrame.Size = UDim2.new(0, 250, 0, 250)
-relojFrame.Position = UDim2.new(0, 20, 1, -280)
-relojFrame.BackgroundTransparency = 0
-relojFrame.Visible = false
-relojFrame.Parent = screenGui
+-- Solo el contador de segundos (sin imagen ni nada extra)
+local countdownFrame = Instance.new("Frame")
+countdownFrame.Name = "CountdownOnly"
+countdownFrame.Size = UDim2.new(0, 150, 0, 100)
+countdownFrame.Position = UDim2.new(0, 20, 1, -120)
+countdownFrame.BackgroundTransparency = 1
+countdownFrame.Visible = false
+countdownFrame.Parent = screenGui
 
--- Fondo Shadow DIO con el nuevo ID que pediste
-local dioBackground = Instance.new("ImageLabel")
-dioBackground.Size = UDim2.new(1, 0, 1, 0)
-dioBackground.BackgroundTransparency = 1
-dioBackground.Image = "rbxassetid://4279786905"  -- ¡Nuevo ID hot y perfecto, papi! 🔥
-dioBackground.ImageTransparency = 0.45
-dioBackground.ScaleType = Enum.ScaleType.Fit
-dioBackground.Parent = relojFrame
-
--- Imagen base del reloj circular
-local relojImage = Instance.new("ImageLabel")
-relojImage.Size = UDim2.new(1, 0, 1, 0)
-relojImage.BackgroundTransparency = 0
-relojImage.Image = "rbxassetid://4279786905"
-relojImage.ImageColor3 = Color3.fromRGB(255, 255, 255)
-relojImage.Parent = relojFrame
-
--- Aguja roja: SOLO UNA, punta en el centro, girando como reloj real
-local aguja = Instance.new("Frame")
-aguja.Size = UDim2.new(0, 6, 0.48, 0)  -- Largo desde centro hacia afuera
-aguja.Position = UDim2.new(0.5, -3, 0.5, 0)  -- Centro exacto
-aguja.AnchorPoint = Vector2.new(0.5, 1)  -- Pivote en la punta inferior (centro del reloj)
-aguja.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-aguja.BorderSizePixel = 0
-aguja.Rotation = 0
-aguja.Parent = relojFrame
-
--- Texto countdown grande en el centro
 local countdownText = Instance.new("TextLabel")
-countdownText.Size = UDim2.new(0.7, 0, 0.4, 0)
-countdownText.Position = UDim2.new(0.15, 0, 0.3, 0)
+countdownText.Size = UDim2.new(1, 0, 1, 0)
 countdownText.BackgroundTransparency = 1
 countdownText.Text = tostring(timeDuration)
 countdownText.TextColor3 = Color3.fromRGB(255, 215, 0)
@@ -105,64 +68,62 @@ countdownText.TextScaled = true
 countdownText.Font = Enum.Font.GothamBlack
 countdownText.TextStrokeTransparency = 0.6
 countdownText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-countdownText.Parent = relojFrame
+countdownText.Parent = countdownFrame
 
 local stopEvent = ReplicatedStorage._BindableEvents.Moves.StopEnemy
 local isRunning = false
 
--- Fade suave
+-- Fade suave solo para el contador
 local function fade(visible)
     local tweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Sine)
-    local trans = visible and 0.45 or 1
-    TweenService:Create(dioBackground, tweenInfo, {ImageTransparency = trans}):Play()
-    TweenService:Create(relojImage, tweenInfo, {ImageTransparency = trans}):Play()
     TweenService:Create(countdownText, tweenInfo, {TextTransparency = visible and 0 or 1}):Play()
-    TweenService:Create(aguja, tweenInfo, {BackgroundTransparency = visible and 0 or 1}):Play()
 end
+
+-- Aura amarilla brillante al cargar y respawn
+local function addYellowAura(character)
+    if not character then return end
+    for _, child in pairs(character:GetChildren()) do
+        if child:IsA("ParticleEmitter") and child.Name == "YellowAura" then
+            child:Destroy()
+        end
+    end
+    
+    local torso = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
+    if not torso then return end
+    
+    local aura = Instance.new("ParticleEmitter")
+    aura.Name = "YellowAura"
+    aura.Texture = "rbxassetid://243660364"
+    aura.Color = ColorSequence.new(Color3.fromRGB(255, 255, 0), Color3.fromRGB(255, 200, 0))
+    aura.Brightness = 3
+    aura.Lifetime = NumberRange.new(1, 2)
+    aura.Rate = 20
+    aura.Speed = NumberRange.new(5, 10)
+    aura.SpreadAngle = Vector2.new(360, 360)
+    aura.Size = NumberSequence.new(1, 3)
+    aura.Transparency = NumberSequence.new(0.5, 1)
+    aura.Enabled = true
+    aura.Parent = torso
+end
+
+addYellowAura(player.Character)
+player.CharacterAdded:Connect(addYellowAura)
 
 button.Activated:Connect(function()
     if isRunning then return end
     isRunning = true
     
     sound:Play()
-    cc.Enabled = true
     
     local char = player.Character
     if not (char and char:FindFirstChild("HumanoidRootPart")) then
-        cc.Enabled = false
         isRunning = false
         return
     end
     
     local centerPos = char.HumanoidRootPart.Position
     
-    -- Hitbox blanco transparente con efecto aire parado
-    local hitboxPart = Instance.new("Part")
-    hitboxPart.Shape = Enum.PartType.Ball
-    hitboxPart.Size = Vector3.new(600, 600, 600)
-    hitboxPart.Position = centerPos
-    hitboxPart.Anchored = true
-    hitboxPart.CanCollide = false
-    hitboxPart.Transparency = 0.75
-    hitboxPart.BrickColor = BrickColor.new("Institutional white")
-    hitboxPart.Material = Enum.Material.Neon
-    hitboxPart.Parent = workspace
-    
-    local airEffect = Instance.new("ParticleEmitter")
-    airEffect.Name = "StoppedAir"
-    airEffect.Texture = "rbxassetid://241837032"
-    airEffect.Color = ColorSequence.new(Color3.new(1,1,1))
-    airEffect.Lifetime = NumberRange.new(10, 15)
-    airEffect.Rate = 100
-    airEffect.Speed = NumberRange.new(0, 0)
-    airEffect.SpreadAngle = Vector2.new(180, 180)
-    airEffect.Size = NumberSequence.new(0.5, 0.5)
-    airEffect.Transparency = NumberSequence.new(0.8, 0.9)
-    airEffect.Enabled = true
-    airEffect.TimeScale = 0
-    airEffect.Parent = hitboxPart
-    
-    relojFrame.Visible = true
+    countdownFrame.Visible = true
     fade(true)
     
     local targets = {}
@@ -181,10 +142,6 @@ button.Activated:Connect(function()
     print("🕐 ZA WARUDO! " .. #targets .. " atrapados en " .. timeDuration .. " seg 🔥")
     
     coroutine.wrap(function()
-        -- Aguja gira como reloj real: una sola dirección, vueltas completas por segundo
-        local tweenInfoAguja = TweenInfo.new(timeDuration, Enum.EasingStyle.Linear)
-        TweenService:Create(aguja, tweenInfoAguja, {Rotation = timeDuration * 360}):Play()
-        
         for i = timeDuration, 1, -1 do
             countdownText.Text = tostring(i)
             for _, target in pairs(targets) do
@@ -212,14 +169,10 @@ button.Activated:Connect(function()
             end
         end
         
-        cc.Enabled = false
-        if hitboxPart then hitboxPart:Destroy() end
-        
         fade(false)
         task.delay(0.7, function()
-            relojFrame.Visible = false
+            countdownFrame.Visible = false
             countdownText.Text = tostring(timeDuration)
-            aguja.Rotation = 0
         end)
         
         isRunning = false
