@@ -594,7 +594,7 @@ local function executeCommand(command)
 					end
 				end)
 			else
-				StarterGui:SetCore("SendNotification", { Title = "Invalido", Text = "El objetivo no tiene personaje válido.", Duration = 1 })
+				StarterGui:SetCore("SendNotification", { Title = "Invalido😭", Text = "El objetivo no tiene personaje válido.", Duration = 1 })
 			end
 
 		elseif command == "permGod" then
@@ -654,14 +654,6 @@ local function executeCommand(command)
         if char and char:FindFirstChild("Humanoid") then
             return char
         end
-    elseif p:IsA("Model") then
-        local humanoid = p:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            return p
-        end
-    end
-    return nil
-end
 
 				if targetChar and targetChar:FindFirstChildOfClass("Humanoid") then
 					local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
@@ -718,7 +710,7 @@ end)
 -- Botones de comando (estética mejorada)
 -------------------------------------------------------------------
 local function createCommandButtons()
-	local commands = {"kill", "heal", "Killer", "permGod", "punish", "unpunish", "freeze", "unfreeze", "bring", "to", "b1", "hk", "MUI", "unlock", "noclans", "Force Lag", "T objetive"}
+	local commands = {"kill", "heal", "Killer", "permGod", "punish", "unpunish", "freeze", "unfreeze", "bring", "to", "b1", "hk", "unlock", "noclans", "Force Lag", "T objetive"}
 	for _, cmd in ipairs(commands) do
 		local button = Instance.new("TextButton")
 		button.Size = UDim2.new(1, 0, 0, 28)
@@ -800,7 +792,7 @@ InputBox.FocusLost:Connect(function(enterPressed)
 			clearSuggestions()
 			return
 		end
-		StarterGui:SetCore("SendNotification", { Title = "🐉Dragon Core", Text = "Hecho por David y Emmanuel.", Duration = 1 })
+		StarterGui:SetCore("SendNotification", { Title="🐉Dragon Core", Text="Cargado", Duration=1 })
 	end
 end)
 
