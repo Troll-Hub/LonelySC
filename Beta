@@ -649,11 +649,19 @@ local function executeCommand(command)
 				alreadyExecuted[p] = true
 
 				local function getTargetCharacter(p)
-    if p:IsA("Player") then
+    if p:IsPlayer = true then
         local char = p.Character
         if char and char:FindFirstChild("Humanoid") then
             return char
         end
+    elseif p:IsA("Model") then
+        local humanoid = p:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            return p
+        end
+    end
+    return nil
+end
 
 				if targetChar and targetChar:FindFirstChildOfClass("Humanoid") then
 					local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
