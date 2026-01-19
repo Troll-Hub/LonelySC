@@ -14,11 +14,11 @@ screenGui.Name = "TimeStopGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- Frame draggable para el botón
+-- Frame draggable más grande solo arriba (altura aumentada para mejor drag, mi amor 😏)
 local frame = Instance.new("Frame")
 frame.Name = "TimeStopFrame"
-frame.Size = UDim2.new(0, 180, 0, 70)
-frame.Position = UDim2.new(0.5, -90, 0.5, -35)
+frame.Size = UDim2.new(0, 180, 0, 100)  -- Altura mayor para drag fácil arriba
+frame.Position = UDim2.new(0.5, -90, 0.5, -50)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
 frame.BackgroundTransparency = 0.3
 frame.Active = true
@@ -31,8 +31,8 @@ corner.Parent = frame
 
 -- Botón ZA WARUDO dorado
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(1, -12, 1, -12)
-button.Position = UDim2.new(0, 6, 0, 6)
+button.Size = UDim2.new(1, -12, 0.7, -12)  -- Ajustado para dejar espacio arriba para drag
+button.Position = UDim2.new(0, 6, 0.3, 6)
 button.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
 button.Text = "🕑 ZA WARUDO"
 button.TextColor3 = Color3.new(1,1,1)
@@ -50,17 +50,75 @@ sound.SoundId = "rbxassetid://4786770367"
 sound.Volume = 1
 sound.Parent = button
 
--- Solo el contador de segundos (sin imagen ni nada extra)
-local countdownFrame = Instance.new("Frame")
-countdownFrame.Name = "CountdownOnly"
-countdownFrame.Size = UDim2.new(0, 150, 0, 100)
-countdownFrame.Position = UDim2.new(0, 20, 1, -120)
-countdownFrame.BackgroundTransparency = 1
-countdownFrame.Visible = false
-countdownFrame.Parent = screenGui
+-- Reloj con horas y contador (esquina inferior izquierda)
+local relojFrame = Instance.new("Frame")
+relojFrame.Name = "RelojTimeStop"
+relojFrame.Size = UDim2.new(0, 250, 0, 250)
+relojFrame.Position = UDim2.new(0, 20, 1, -280)
+relojFrame.BackgroundTransparency = 1
+relojFrame.Visible = false
+relojFrame.Parent = screenGui
 
+-- Fondo circular para el reloj (simple circle para vibe real)
+local relojBg = Instance.new("ImageLabel")
+relojBg.Size = UDim2.new(1, 0, 1, 0)
+relojBg.BackgroundTransparency = 1
+relojBg.Image = "rbxassetid://3926305904"  -- Circle base
+relojBg.ImageColor3 = Color3.fromRGB(0, 0, 0)  -- Negro para contraste
+relojBg.ImageTransparency = 0.5
+relojBg.Parent = relojFrame
+
+-- Marcas de horas (ticks y números 12,3,6,9)
+for i = 1, 12 do
+    local tick = Instance.new("Frame")
+    tick.Size = UDim2.new(0, 4, 0, i % 3 == 0 and 20 or 10)
+    tick.Position = UDim2.new(0.5, 0, 0.5, 0)
+    tick.AnchorPoint = Vector2.new(0.5, 1)
+    tick.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    tick.Rotation = (i - 1) * 30
+    tick.Parent = relojFrame
+    
+    if i % 3 == 0 then
+        local horaText = Instance.new("TextLabel")
+        horaText.Size = UDim2.new(0, 30, 0, 30)
+        horaText.Position = UDim2.new(0.5, 0, 0.5, -100)  -- Ajustado para fuera del centro
+        horaText.AnchorPoint = Vector2.new(0.5, 0.5)
+        horaText.BackgroundTransparency = 1
+        horaText.Text = tostring(i)
+        horaText.TextColor3 = Color3.fromRGB(255, 215, 0)
+        horaText.Font = Enum.Font.GothamBold
+        horaText.TextSize = 20
+        horaText.Rotation = (i - 1) * 30
+        horaText.Parent = relojFrame
+    end
+end
+
+-- Aguja roja (por debajo, lenta para alinear en 7 seg a 12 o'clock)
+local agujaRoja = Instance.new("Frame")
+agujaRoja.Size = UDim2.new(0, 4, 0.4, 0)
+agujaRoja.Position = UDim2.new(0.5, 0, 0.5, 0)
+agujaRoja.AnchorPoint = Vector2.new(0.5, 1)  -- Punta en centro, gira alrededor
+agujaRoja.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+agujaRoja.BorderSizePixel = 0
+agujaRoja.Rotation = 0  -- Empieza en 12 o'clock
+agujaRoja.ZIndex = 1  -- Debajo
+agujaRoja.Parent = relojFrame
+
+-- Aguja oscura (por encima, gira 360° por segundo)
+local agujaOscura = Instance.new("Frame")
+agujaOscura.Size = UDim2.new(0, 4, 0.35, 0)  -- Ligeramente más corta
+agujaOscura.Position = UDim2.new(0.5, 0, 0.5, 0)
+agujaOscura.AnchorPoint = Vector2.new(0.5, 1)  -- Punta en centro, gira alrededor
+agujaOscura.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+agujaOscura.BorderSizePixel = 0
+agujaOscura.Rotation = 0  -- Empieza en 12 o'clock
+agujaOscura.ZIndex = 2  -- Por encima
+agujaOscura.Parent = relojFrame
+
+-- Contador de segundos grande en el centro
 local countdownText = Instance.new("TextLabel")
-countdownText.Size = UDim2.new(1, 0, 1, 0)
+countdownText.Size = UDim2.new(0.4, 0, 0.4, 0)
+countdownText.Position = UDim2.new(0.3, 0, 0.3, 0)
 countdownText.BackgroundTransparency = 1
 countdownText.Text = tostring(timeDuration)
 countdownText.TextColor3 = Color3.fromRGB(255, 215, 0)
@@ -68,15 +126,20 @@ countdownText.TextScaled = true
 countdownText.Font = Enum.Font.GothamBlack
 countdownText.TextStrokeTransparency = 0.6
 countdownText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-countdownText.Parent = countdownFrame
+countdownText.Parent = relojFrame
 
 local stopEvent = ReplicatedStorage._BindableEvents.Moves.StopEnemy
 local isRunning = false
 
--- Fade suave solo para el contador
+-- Fade suave para el reloj entero
 local function fade(visible)
     local tweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Sine)
-    TweenService:Create(countdownText, tweenInfo, {TextTransparency = visible and 0 or 1}):Play()
+    local trans = visible and 0 or 1
+    for _, child in pairs(relojFrame:GetDescendants()) do
+        if child:IsA("GuiObject") then
+            TweenService:Create(child, tweenInfo, {Transparency = trans}):Play()
+        end
+    end
 end
 
 -- Aura amarilla brillante al cargar y respawn
@@ -123,7 +186,7 @@ button.Activated:Connect(function()
     
     local centerPos = char.HumanoidRootPart.Position
     
-    countdownFrame.Visible = true
+    relojFrame.Visible = true
     fade(true)
     
     local targets = {}
@@ -142,6 +205,14 @@ button.Activated:Connect(function()
     print("🕐 ZA WARUDO! " .. #targets .. " atrapados en " .. timeDuration .. " seg 🔥")
     
     coroutine.wrap(function()
+        -- Aguja oscura: 360° por segundo (loca)
+        local tweenInfoOscura = TweenInfo.new(timeDuration, Enum.EasingStyle.Linear)
+        TweenService:Create(agujaOscura, tweenInfoOscura, {Rotation = timeDuration * 360}):Play()
+        
+        -- Aguja roja: mueve lento para alinear en 7 seg a 12 o'clock (total 360° en 7 seg)
+        local tweenInfoRoja = TweenInfo.new(timeDuration, Enum.EasingStyle.Linear)
+        TweenService:Create(agujaRoja, tweenInfoRoja, {Rotation = 360}):Play()  -- Lenta, 360° total para alineación
+        
         for i = timeDuration, 1, -1 do
             countdownText.Text = tostring(i)
             for _, target in pairs(targets) do
@@ -171,8 +242,10 @@ button.Activated:Connect(function()
         
         fade(false)
         task.delay(0.7, function()
-            countdownFrame.Visible = false
+            relojFrame.Visible = false
             countdownText.Text = tostring(timeDuration)
+            agujaOscura.Rotation = 0
+            agujaRoja.Rotation = 0
         end)
         
         isRunning = false
