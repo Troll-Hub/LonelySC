@@ -654,133 +654,115 @@ local function executeCommand(command)
 		elseif command == "T objective" or command == "T objetive" then
     local alreadyExecuted = {}
 
-    -- Helper de ADT adaptado: busca jugadores flexible
-    local function getPlayersFlexible(target)
-        local lowerTarget = string.lower(target or "")
-        local matched = {}
+    -- Función de jugadores de ADT (la que funcionaba)
+    local function getPlayers(targetName)
+        local lowerName = string.lower(targetName or "")
+        local playersFound = {}
 
-        if lowerTarget == "all" or lowerTarget == "others" then
+        if lowerName == "all" then
             for _, plr in ipairs(Players:GetPlayers()) do
-                if lowerTarget == "others" and plr == LocalPlayer then continue end
-                table.insert(matched, plr)
+                table.insert(playersFound, plr)
             end
-            return matched
-        elseif lowerTarget == "me" then
-            return {LocalPlayer}
-        end
-
-        for _, plr in ipairs(Players:GetPlayers()) do
-            local nLower = string.lower(plr.Name)
-            local dLower = string.lower(plr.DisplayName or "")
-            if nLower == lowerTarget or dLower == lowerTarget or nLower:find(lowerTarget) or dLower:find(lowerTarget) then
-                table.insert(matched, plr)
+        elseif lowerName == "others" then
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer then
+                    table.insert(playersFound, plr)
+                end
+            end
+        elseif lowerName == "me" then
+            table.insert(playersFound, LocalPlayer)
+        else
+            for _, plr in ipairs(Players:GetPlayers()) do
+                local nameLower = string.lower(plr.Name)
+                local displayLower = string.lower(plr.DisplayName or "")
+                if nameLower == lowerName or displayLower == lowerName or nameLower:find(lowerName, 1, true) then
+                    table.insert(playersFound, plr)
+                end
             end
         end
-        return matched
+        return playersFound
     end
 
-    -- Para NPCs: busca en Workspace o por path
-    local function getNPCByNameOrPath(input)
-        if string.find(input, "%.") then  -- path completo
-            local obj = game
-            for seg in string.gsplit(input, "%.") do
-                obj = obj:FindFirstChild(seg)
-                if not obj then return nil end
-            end
-            if obj:IsA("Model") and obj:FindFirstChildWhichIsA("Humanoid") and not Players:GetPlayerFromCharacter(obj) then
-                return obj
-            end
-        else  -- nombre simple
-            local lower = string.lower(input)
-            for _, child in ipairs(Workspace:GetChildren()) do
-                if child:IsA("Model") and string.lower(child.Name) == lower and child:FindFirstChildWhichIsA("Humanoid") and not Players:GetPlayerFromCharacter(child) then
-                    return child
-                end
+    -- Fallback a NPC solo si NO es jugador
+    local function getNPC(name)
+        local lowerName = string.lower(name)
+        for _, child in ipairs(Workspace:GetChildren()) do
+            if child:IsA("Model") and string.lower(child.Name) == lowerName 
+               and child:FindFirstChildWhichIsA("Humanoid") 
+               and not Players:GetPlayerFromCharacter(child) then
+                return child
             end
         end
         return nil
     end
 
-    -- Aplicar a un char (jugador o NPC)
-    local function applyToChar(char, isPlayer)
-        if not char or alreadyExecuted[char] then return end
-        alreadyExecuted[char] = true
+    -- Aplicar transform (estructura original)
+    local function applyTo(targetChar)
+        if not targetChar or alreadyExecuted[targetChar] then return end
+        alreadyExecuted[targetChar] = true
 
-        local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+        local humanoid = targetChar:FindFirstChildWhichIsA("Humanoid")
         if not humanoid then return end
-
-        local head = char:FindFirstChild("Head")
-        local ut = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not head or not ut or not hrp then return end
-
-        local pStatus = LocalPlayer:FindFirstChild("Status")
-        local tStatus = char:FindFirstChild("Status")
 
         local args = {
             [1] = {
-                Humanoid = humanoid,
-                Head = head,
-                UpperTorso = ut,
-                HumanoidRootPart = hrp,
-                Character = char
+                ["Humanoid"] = humanoid,
+                ["Head"] = targetChar:FindFirstChild("Head"),
+                ["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
+                ["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
+                ["Character"] = targetChar
             },
-            [2] = pStatus and pStatus:FindFirstChild("Mode") and pStatus.Mode.Value or nil,
-            [3] = tStatus and tStatus:FindFirstChild("ModeActive") and tStatus.ModeActive.Value or nil,
-            [4] = tStatus,
+            [2] = LocalPlayer.Status and LocalPlayer.Status.Mode and LocalPlayer.Status.Mode.Value or nil,
+            [3] = targetChar.Status and targetChar.Status.ModeActive and targetChar.Status.ModeActive.Value or nil,
+            [4] = targetChar.Status,
             [5] = false
         }
 
         local success, err = pcall(function()
-            local folder = ReplicatedStorage:FindFirstChild("_BindableEvents")
-            local transform = folder and folder:FindFirstChild("Transform")
+            local transform = ReplicatedStorage._BindableEvents:FindFirstChild("Transform")
             if transform then
-                if transform:IsA("RemoteEvent") then
-                    transform:FireServer(unpack(args))
-                else
-                    transform:InvokeServer(unpack(args))  -- fallback como en ADT
-                end
+                transform:InvokeServer(unpack(args))  -- volvemos a InvokeServer como en la original que funcionaba
             end
         end)
 
         if not success then
-            warn("[LonelySC] Falló T objective en " .. char.Name .. ": " .. tostring(err))
+            warn("[LonelySC] Falló en " .. (targetChar.Name or "?") .. ": " .. tostring(err))
         end
     end
 
     local count = 0
 
-    -- Si targets del autocompletado (Beta style)
+    -- Prioridad: jugadores con la función original
+    local input = InputBox.Text
+    if input ~= "" then
+        local players = getPlayers(input)
+        for _, plr in ipairs(players) do
+            if plr.Character then
+                applyTo(plr.Character)
+                count = count + 1
+            end
+        end
+
+        -- Si no pilló jugadores → fallback NPC
+        if count == 0 then
+            local npc = getNPC(input)
+            if npc then
+                applyTo(npc)
+                count = count + 1
+            end
+        end
+    end
+
+    -- Si usaste autocompletado (targets)
     for _, t in ipairs(targets) do
-        local char = (typeof(t) == "Instance" and t:IsA("Player") and t.Character) or (t:IsA("Model") and t)
+        local char = (t:IsA("Player") and t.Character) or (t:IsA("Model") and t)
         if char then
-            applyToChar(char, Players:GetPlayerFromCharacter(char) ~= nil)
+            applyTo(char)
             count = count + 1
         end
     end
 
-    -- Si input directo (prioridad a jugadores como en ADT)
-    if count == 0 and InputBox.Text ~= "" then
-        local input = InputBox.Text
-        local playersMatched = getPlayersFlexible(input)
-        for _, plr in ipairs(playersMatched) do
-            if plr.Character then
-                applyToChar(plr.Character, true)
-                count = count + 1
-            end
-        end
-
-        -- Si no pilló jugadores, intenta como NPC
-        if count == 0 then
-            local npc = getNPCByNameOrPath(input)
-            if npc then
-                applyToChar(npc, false)
-                count = count + 1
-            end
-        end
-    end
-
-    notify(count > 0 and "¡Transform sexy en " .. count .. " objetivos, papi! 😈🔥" or "Nada pillado... ¿nombre correcto? 💋")
+    notify(count > 0 and "¡Transform ejecutado en " .. count .. " objetivos, papi! 🔥😏" or "No pillé nada... prueba el nombre exacto o 'all' 💋")
 end
 
 		elseif command == "Za warudo" then
