@@ -651,119 +651,54 @@ local function executeCommand(command)
 				end
 			end)
 
-		elseif command == "T objective" or command == "T objetive" then
-    local alreadyExecuted = {}
+		elseif command == "T objetive" then
+			-- Aplica a players y NPCs por igual
+			local alreadyExecuted = {}
 
-    -- Función de jugadores de ADT (la que funcionaba)
-    local function getPlayers(targetName)
-        local lowerName = string.lower(targetName or "")
-        local playersFound = {}
+			local function getTargetCharacter(obj)
+				if typeof(obj) == "Instance" and obj:IsA("Player") then
+					local char = obj.Character
+					if char and (char:FindFirstChildOfClass("Humanoid") or char:FindFirstChild("Humanoid")) then
+						return char
+					end
+				elseif typeof(obj) == "Instance" and obj:IsA("Model") then
+					local humanoid = obj:FindFirstChildOfClass("Humanoid") or obj:FindFirstChild("Humanoid")
+					if humanoid then
+						return obj
+					end
+				end
+				return nil
+			end
 
-        if lowerName == "all" then
-            for _, plr in ipairs(Players:GetPlayers()) do
-                table.insert(playersFound, plr)
-            end
-        elseif lowerName == "others" then
-            for _, plr in ipairs(Players:GetPlayers()) do
-                if plr ~= LocalPlayer then
-                    table.insert(playersFound, plr)
-                end
-            end
-        elseif lowerName == "me" then
-            table.insert(playersFound, LocalPlayer)
-        else
-            for _, plr in ipairs(Players:GetPlayers()) do
-                local nameLower = string.lower(plr.Name)
-                local displayLower = string.lower(plr.DisplayName or "")
-                if nameLower == lowerName or displayLower == lowerName or nameLower:find(lowerName, 1, true) then
-                    table.insert(playersFound, plr)
-                end
-            end
-        end
-        return playersFound
-    end
+			local function runForTarget(p)
+				if alreadyExecuted[p] then return end
+				alreadyExecuted[p] = true
 
-    -- Fallback a NPC solo si NO es jugador
-    local function getNPC(name)
-        local lowerName = string.lower(name)
-        for _, child in ipairs(Workspace:GetChildren()) do
-            if child:IsA("Model") and string.lower(child.Name) == lowerName 
-               and child:FindFirstChildWhichIsA("Humanoid") 
-               and not Players:GetPlayerFromCharacter(child) then
-                return child
-            end
-        end
-        return nil
-    end
+				local targetChar = getTargetCharacter(p)
+				if targetChar and (targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")) then
+					local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
+					local args = {
+						[1] = {
+							["Humanoid"] = humanoid,
+							["Head"] = targetChar:FindFirstChild("Head"),
+							["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
+							["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
+							["Character"] = targetChar
+						},
+						[2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
+						[3] = (targetChar.Status and targetChar.Status.ModeActive) or nil,
+						[4] = targetChar.Status,
+						[5] = false
+					}
+					pcall(function()
+						if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Transform then
+							ReplicatedStorage._BindableEvents.Transform:InvokeServer(unpack(args))
+						end
+					end)
+				end
+			end
 
-    -- Aplicar transform (estructura original)
-    local function applyTo(targetChar)
-        if not targetChar or alreadyExecuted[targetChar] then return end
-        alreadyExecuted[targetChar] = true
-
-        local humanoid = targetChar:FindFirstChildWhichIsA("Humanoid")
-        if not humanoid then return end
-
-        local args = {
-            [1] = {
-                ["Humanoid"] = humanoid,
-                ["Head"] = targetChar:FindFirstChild("Head"),
-                ["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
-                ["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
-                ["Character"] = targetChar
-            },
-            [2] = LocalPlayer.Status and LocalPlayer.Status.Mode and LocalPlayer.Status.Mode.Value or nil,
-            [3] = targetChar.Status and targetChar.Status.ModeActive and targetChar.Status.ModeActive.Value or nil,
-            [4] = targetChar.Status,
-            [5] = false
-        }
-
-        local success, err = pcall(function()
-            local transform = ReplicatedStorage._BindableEvents:FindFirstChild("Transform")
-            if transform then
-                transform:InvokeServer(unpack(args))  -- volvemos a InvokeServer como en la original que funcionaba
-            end
-        end)
-
-        if not success then
-            warn("[LonelySC] Falló en " .. (targetChar.Name or "?") .. ": " .. tostring(err))
-        end
-    end
-
-    local count = 0
-
-    -- Prioridad: jugadores con la función original
-    local input = InputBox.Text
-    if input ~= "" then
-        local players = getPlayers(input)
-        for _, plr in ipairs(players) do
-            if plr.Character then
-                applyTo(plr.Character)
-                count = count + 1
-            end
-        end
-
-        -- Si no pilló jugadores → fallback NPC
-        if count == 0 then
-            local npc = getNPC(input)
-            if npc then
-                applyTo(npc)
-                count = count + 1
-            end
-        end
-    end
-
-    -- Si usaste autocompletado (targets)
-    for _, t in ipairs(targets) do
-        local char = (t:IsA("Player") and t.Character) or (t:IsA("Model") and t)
-        if char then
-            applyTo(char)
-            count = count + 1
-        end
-    end
-
-    notify(count > 0 and "¡Transform ejecutado en " .. count .. " objetivos, papi! 🔥😏" or "No pillé nada... prueba el nombre exacto o 'all' 💋")
-end
+			for _, p in ipairs(targets) do runForTarget(p) end
 
 		elseif command == "Za warudo" then
 			pcall(function()
