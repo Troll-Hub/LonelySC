@@ -651,54 +651,87 @@ local function executeCommand(command)
 				end
 			end)
 
-		elseif command == "T objetive" then
-			-- Aplica a players y NPCs por igual
-			local alreadyExecuted = {}
+		elseif command == "T objective" or command == "T objetive" then
+    local alreadyExecuted = {}
 
-			local function getTargetCharacter(obj)
-				if typeof(obj) == "Instance" and obj:IsA("Player") then
-					local char = obj.Character
-					if char and (char:FindFirstChildOfClass("Humanoid") or char:FindFirstChild("Humanoid")) then
-						return char
-					end
-				elseif typeof(obj) == "Instance" and obj:IsA("Model") then
-					local humanoid = obj:FindFirstChildOfClass("Humanoid") or obj:FindFirstChild("Humanoid")
-					if humanoid then
-						return obj
-					end
-				end
-				return nil
-			end
+    local function applyTransformTo(target)
+        if not target or alreadyExecuted[target] then return end
+        alreadyExecuted[target] = true
 
-			local function runForTarget(p)
-				if alreadyExecuted[p] then return end
-				alreadyExecuted[p] = true
+        local targetChar = target
+        
+        -- Si es string (nombre del input), busca directo en Workspace
+        if typeof(target) == "string" then
+            local lowerName = string.lower(target)
+            targetChar = nil
+            for _, child in ipairs(Workspace:GetChildren()) do
+                if child:IsA("Model") and string.lower(child.Name) == lowerName then
+                    targetChar = child
+                    break
+                end
+            end
+        elseif typeof(target) == "Instance" then
+            if target:IsA("Player") then
+                targetChar = target.Character
+            elseif target:IsA("Model") then
+                targetChar = target
+            end
+        end
+        
+        if not targetChar then return end
 
-				local targetChar = getTargetCharacter(p)
-				if targetChar and (targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")) then
-					local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
-					local args = {
-						[1] = {
-							["Humanoid"] = humanoid,
-							["Head"] = targetChar:FindFirstChild("Head"),
-							["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
-							["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
-							["Character"] = targetChar
-						},
-						[2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
-						[3] = (targetChar.Status and targetChar.Status.ModeActive) or nil,
-						[4] = targetChar.Status,
-						[5] = false
-					}
-					pcall(function()
-						if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Transform then
-							ReplicatedStorage._BindableEvents.Transform:InvokeServer(unpack(args))
-						end
-					end)
-				end
-			end
+        local humanoid = targetChar:FindFirstChildWhichIsA("Humanoid")
+        if not humanoid then return end
 
-			for _, p in ipairs(targets) do runForTarget(p) end
+        local args = {
+            [1] = {
+                ["Humanoid"] = humanoid,
+                ["Head"] = targetChar:FindFirstChild("Head"),
+                ["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
+                ["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
+                ["Character"] = targetChar
+            },
+            [2] = LocalPlayer.Status and LocalPlayer.Status:FindFirstChild("Mode") and LocalPlayer.Status.Mode.Value or nil,
+            [3] = targetChar.Status and targetChar.Status:FindFirstChild("ModeActive") and targetChar.Status.ModeActive.Value or nil,
+            [4] = targetChar.Status,
+            [5] = false
+        }
+
+        local success, err = pcall(function()
+            local bindable = ReplicatedStorage:FindFirstChild("_BindableEvents")
+            if bindable then
+                local transformEvent = bindable:FindFirstChild("Transform")
+                if transformEvent then
+                    transformEvent:InvokeServer(unpack(args))  -- como en original
+                end
+            end
+        end)
+
+        if not success then
+            warn("[LonelySC] Error en T objective: " .. tostring(err))
+        end
+    end
+
+    local count = 0
+
+    -- Ejecuta en los targets del autocompletado (si hay selección)
+    for _, t in ipairs(targets) do
+        applyTransformTo(t)
+        count = count + 1
+    end
+
+    -- Si no hay targets y hay texto en input, ejecuta solo en ese objetivo
+    if count == 0 and InputBox.Text ~= "" then
+        applyTransformTo(InputBox.Text)
+        count = count + 1
+    end
+
+    if count > 0 then
+        notify("Transform ejecutado en " .. count .. " objetivo(s), papi~ 😈🔥")
+    else
+        notify("No encontré el objetivo... escribe el nombre exacto del modelo~ 💋")
+    end
+end
 
 		elseif command == "Za warudo" then
 			pcall(function()
