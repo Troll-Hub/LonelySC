@@ -678,12 +678,12 @@ local function executeCommand(command)
 				if targetChar and (targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")) then
 					local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
 					
-					-- Obtenemos Status de forma segura: en Player si es jugador, en Character si es NPC
-					local playerObj = (typeof(p) == "Instance" and p:IsA("Player")) and p or game.Players:GetPlayerFromCharacter(targetChar)
-					local status = playerObj and playerObj:FindFirstChild("Status") or targetChar:FindFirstChild("Status")
+					-- Status directo para jugadores (como en LocalPlayer), y del Character para NPCs
+					local playerObj = typeof(p) == "Instance" and p:IsA("Player") and p or game.Players:GetPlayerFromCharacter(targetChar)
+					local targetStatus = playerObj and playerObj:FindFirstChild("Status") or targetChar:FindFirstChild("Status")
 					
-					-- Valor de ModeActive si existe
-					local modeActive = status and status:FindFirstChild("ModeActive") and status.ModeActive.Value or nil
+					-- ModeActive directo (sin .Value, como pediste papi)
+					local modeActive = targetStatus and targetStatus:FindFirstChild("ModeActive") or nil
 
 					local args = {
 						[1] = {
@@ -695,7 +695,7 @@ local function executeCommand(command)
 						},
 						[2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
 						[3] = modeActive,
-						[4] = status,
+						[4] = targetStatus,
 						[5] = false
 					}
 
