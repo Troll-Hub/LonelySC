@@ -678,15 +678,6 @@ local function executeCommand(command)
 				if targetChar and (targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")) then
 					local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
 					
-					-- Nombre limpio: jugador → solo nombre bonito, NPC → nombre del modelo en Workspace
-					local cleanName
-					local player = game.Players:GetPlayerFromCharacter(targetChar)
-					if player then
-						cleanName = player.DisplayName ~= player.Name and player.DisplayName or player.Name
-					else
-						cleanName = targetChar.Name
-					end
-
 					local args = {
 						[1] = {
 							["Humanoid"] = humanoid,
@@ -695,16 +686,13 @@ local function executeCommand(command)
 							["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
 							["Character"] = targetChar
 						},
-						[2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
-						[3] = (targetChar.Status and targetChar.Status.ModeActive) or nil,
+						[2] = LocalPlayer.Status and LocalPlayer.Status.Mode,
+						[3] = targetChar.Status and targetChar.Status.ModeActive,
 						[4] = targetChar.Status,
 						[5] = false
 					}
-					pcall(function()
-						if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Transform then
-							ReplicatedStorage._BindableEvents.Transform:InvokeServer(unpack(args))
-						end
-					end)
+
+					ReplicatedStorage._BindableEvents.Transform:InvokeServer(unpack(args))
 				end
 			end
 
