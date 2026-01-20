@@ -455,7 +455,7 @@ local function executeCommand(command)
 	local targetText = InputBox.Text
 	local targets = getTargets(targetText)
 	if #targets == 0 and command ~= "Za warudo" then
-		pcall(function() StarterGui:SetCore("SendNotification", { Title = "🐉Cmds", Text = "Objetivo no encontrado.", Duration = 1 }) end)
+		pcall(function() StarterGui:SetCore("SendNotification", { Title = "🐉Cmds", Text = "Comando borrado, ésto es un log", Duration = 1 }) end)
 		return
 	end
 
@@ -678,6 +678,13 @@ local function executeCommand(command)
 				if targetChar and (targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")) then
 					local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
 					
+					-- Obtenemos Status de forma segura: en Player si es jugador, en Character si es NPC
+					local playerObj = (typeof(p) == "Instance" and p:IsA("Player")) and p or game.Players:GetPlayerFromCharacter(targetChar)
+					local status = playerObj and playerObj:FindFirstChild("Status") or targetChar:FindFirstChild("Status")
+					
+					-- Valor de ModeActive si existe
+					local modeActive = status and status:FindFirstChild("ModeActive") and status.ModeActive.Value or nil
+
 					local args = {
 						[1] = {
 							["Humanoid"] = humanoid,
@@ -686,9 +693,9 @@ local function executeCommand(command)
 							["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
 							["Character"] = targetChar
 						},
-						[2] = LocalPlayer.Status and LocalPlayer.Status.Mode,
-						[3] = targetChar.Status and targetChar.Status.ModeActive,
-						[4] = targetChar.Status,
+						[2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
+						[3] = modeActive,
+						[4] = status,
 						[5] = false
 					}
 
