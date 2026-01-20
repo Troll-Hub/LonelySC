@@ -652,69 +652,67 @@ local function executeCommand(command)
 			end)
 
 		elseif command == "T objetive" then
-    local alreadyExecuted = {}
+			-- Aplica a players y NPCs por igual
+			local alreadyExecuted = {}
 
-    local function getTargetCharacter(obj)
-        if typeof(obj) == "Instance" then
-            if obj:IsA("Model") then
-                local humanoid = obj:FindFirstChildOfClass("Humanoid") or obj:FindFirstChild("Humanoid")
-                if humanoid then
-                    return obj
-                end
-            end
-        end
-        return nil
-    end
+			local function getTargetCharacter(obj)
+				if typeof(obj) == "Instance" and obj:IsA("Player") then
+					local char = obj.Character
+					if char and (char:FindFirstChildOfClass("Humanoid") or char:FindFirstChild("Humanoid")) then
+						return char
+					end
+				elseif typeof(obj) == "Instance" and obj:IsA("Model") then
+					local humanoid = obj:FindFirstChildOfClass("Humanoid") or obj:FindFirstChild("Humanoid")
+					if humanoid then
+						return obj
+					end
+				end
+				return nil
+			end
 
-    local function runForTarget(p)
-        if alreadyExecuted[p] then return end
-        alreadyExecuted[p] = true
+			local function runForTarget(p)
+				if alreadyExecuted[p] then return end
+				alreadyExecuted[p] = true
 
-        local targetChar = getTargetCharacter(p)
-        if not targetChar then return end
+				local targetChar = getTargetCharacter(p)
+				if targetChar and (targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")) then
+					local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
+					
+					-- Nombre limpio: jugador → solo nombre bonito, NPC → nombre del modelo en Workspace
+					local cleanName
+					local player = game.Players:GetPlayerFromCharacter(targetChar)
+					if player then
+						cleanName = player.DisplayName ~= player.Name and player.DisplayName or player.Name
+					else
+						cleanName = targetChar.Name
+					end
 
-        local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
-        if not humanoid then return end
+					local args = {
+						[1] = {
+							["Humanoid"] = humanoid,
+							["Head"] = targetChar:FindFirstChild("Head"),
+							["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
+							["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
+							["Character"] = targetChar
+						},
+						[2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
+						[3] = (targetChar.Status and targetChar.Status.ModeActive) or nil,
+						[4] = targetChar.Status,
+						[5] = false
+					}
+					pcall(function()
+						if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Transform then
+							ReplicatedStorage._BindableEvents.Transform:InvokeServer(unpack(args))
+						end
+					end)
+				end
+			end
 
-        -- Verificamos si es jugador o NPC y usamos el nombre correcto
-        local cleanName
-        local player = game.Players:GetPlayerFromCharacter(targetChar)
-        
-        if player then
-            -- Es jugador → solo su nombre limpio (sin Workspace.)
-            cleanName = player.DisplayName ~= player.Name and player.DisplayName or player.Name
-        else
-            -- Es NPC → nombre del modelo en Workspace
-            cleanName = targetChar.Name
-        end
+			for _, p in ipairs(targets) do runForTarget(p) end
 
-        local args = {
-            [1] = {
-                ["Humanoid"] = humanoid,
-                ["Head"] = targetChar:FindFirstChild("Head"),
-                ["UpperTorso"] = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso"),
-                ["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
-                ["Character"] = targetChar,
-                -- Si el sistema usa el nombre para mostrar algo, puedes agregarlo aquí:
-                -- ["Name"] = cleanName,  -- descomenta si lo necesitas
-            },
-            [2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
-            [3] = (targetChar.Status and targetChar.Status.ModeActive) or nil,
-            [4] = targetChar.Status,
-            [5] = false
-        }
 
-        pcall(function()
-            if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Transform then
-                ReplicatedStorage._BindableEvents.Transform:InvokeServer(unpack(args))
-            end
-        end)
-    end
-
-    for _, p in ipairs(targets) do 
-        runForTarget(p) 
-    end
-end
+		end
+	end
 
 	pcall(function() StarterGui:SetCore("SendNotification", { Title="🐉Cmds", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 }) end)
 end
