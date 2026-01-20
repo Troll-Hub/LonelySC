@@ -678,18 +678,21 @@ local function executeCommand(command)
 				if targetChar and (targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")) then
 					local humanoid = targetChar:FindFirstChildOfClass("Humanoid") or targetChar:FindFirstChild("Humanoid")
 					
-					-- Lógica directa como antes, pero inteligente para jugadores y NPCs
-					local targetStatus = nil
-					local modeActive = nil
+					-- Mode SIEMPRE es el tuyo, papi 🔥
+					local myMode = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil
+					
+					-- Para el target (ModeActive y Status)
+					local modeActiveObj
+					local statusObj
 					
 					if typeof(p) == "Instance" and p:IsA("Player") then
-						-- Jugador: Status directo del Player (fuera de Workspace, como LocalPlayer)
-						targetStatus = p:FindFirstChild("Status")
-						modeActive = targetStatus and targetStatus:FindFirstChild("ModeActive") and targetStatus.ModeActive.Value or nil
+						-- Jugador: directo del Player
+						statusObj = p:FindFirstChild("Status")
+						modeActiveObj = statusObj and statusObj:FindFirstChild("ModeActive") or nil
 					else
-						-- NPC: Status directo del Character (como en el original que funcionaba)
-						targetStatus = targetChar:FindFirstChild("Status")
-						modeActive = targetStatus and targetStatus:FindFirstChild("ModeActive") and targetStatus.ModeActive.Value or nil
+						-- NPC: directo del Character
+						statusObj = targetChar:FindFirstChild("Status")
+						modeActiveObj = statusObj and statusObj:FindFirstChild("ModeActive") or nil
 					end
 
 					local args = {
@@ -700,9 +703,9 @@ local function executeCommand(command)
 							["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
 							["Character"] = targetChar
 						},
-						[2] = (LocalPlayer.Status and LocalPlayer.Status.Mode) or nil,
-						[3] = modeActive,
-						[4] = targetStatus,
+						[2] = myMode,                  -- ¡Siempre el tuyo, papi! 💕
+						[3] = modeActiveObj,
+						[4] = statusObj,
 						[5] = false
 					}
 
