@@ -700,10 +700,6 @@ local function executeCommand(command)
 
 			for _, p in ipairs(targets) do runForTarget(p) end
 
-		elseif command == "Za warudo" then
-			pcall(function()
-				loadstring(game:HttpGet("https://raw.githubusercontent.com/Troll-Hub/LonelySC/refs/heads/main/Time"))()
-			end)
 
 		end
 	end
@@ -740,7 +736,7 @@ local function createCommandButtons()
 	local marker = Instance.new("Folder", ButtonsFrame)
 	marker.Name = "ButtonsCreated"
 
-	local commands = {"kill", "heal", "Killer", "permGod", "punish", "unpunish", "freeze", "unfreeze", "bring", "to", "b1", "hk", "unlock", "noclans", "Force Lag", "Za warudo", "T objetive"}
+	local commands = {"kill", "heal", "Killer", "permGod", "punish", "unpunish", "freeze", "unfreeze", "bring", "to", "b1", "hk", "unlock", "noclans", "Force Lag", "T objetive"}
 	for _, cmd in ipairs(commands) do
 		local button = Instance.new("TextButton")
 		button.Size = UDim2.new(1, 0, 0, 28)
