@@ -514,7 +514,7 @@ local function executeCommand(command)
 				if humanoid then
 					pcall(function()
 						if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Moves and ReplicatedStorage._BindableEvents.Moves.TakeDamage then
-							ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(humanoid, -1e9, LocalPlayer)
+							ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(humanoid, -1000000, LocalPlayer)
 						end
 					end)
 				end
@@ -688,6 +688,7 @@ local function executeCommand(command)
 					if typeof(p) == "Instance" and p:IsA("Player") then
 						-- Jugador: directo del Player
 						statusObj = p:FindFirstChild("Status")
+						statusObj = p:FindFirstChild("Mode")
 						modeActiveObj = statusObj and statusObj:FindFirstChild("ModeActive") or nil
 					else
 						-- NPC: directo del Character
