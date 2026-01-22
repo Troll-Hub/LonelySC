@@ -688,7 +688,6 @@ local function executeCommand(command)
 					if typeof(p) == "Instance" and p:IsA("Player") then
 						-- Jugador: directo del Player
 						statusObj = p:FindFirstChild("Status")
-						statusMode = p:FindFirstChild("Mode")
 						modeActiveObj = statusObj and statusObj:FindFirstChild("ModeActive") or nil
 					else
 						-- NPC: directo del Character
@@ -704,7 +703,7 @@ local function executeCommand(command)
 							["HumanoidRootPart"] = targetChar:FindFirstChild("HumanoidRootPart"),
 							["Character"] = targetChar
 						},
-						[2] = statusMode,                  -- ¡Siempre el tuyo, papi! 💕
+						[2] = myMode,                  -- ¡Siempre el tuyo, papi! 💕
 						[3] = modeActiveObj,
 						[4] = statusObj,
 						[5] = false
