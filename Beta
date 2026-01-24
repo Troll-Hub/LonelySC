@@ -54,8 +54,8 @@ local TitleLabel = Instance.new("TextLabel", Header)
 TitleLabel.Size = UDim2.new(0.8, 0, 1, 0)
 TitleLabel.Position = UDim2.new(0, 8, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "🐉Dragon Core"
-TitleLabel.TextColor3 = Color3.fromRGB(255,0,0)
+TitleLabel.Text = "†Divine Core†"
+TitleLabel.TextColor3 = Color3.fromRGB(255,255,0)
 TitleLabel.TextScaled = true
 TitleLabel.Font = Enum.Font.GothamSemibold
 
@@ -756,7 +756,7 @@ local function createCommandButtons()
 		local button = Instance.new("TextButton")
 		button.Size = UDim2.new(1, 0, 0, 28)
 		button.BackgroundColor3 = Color3.fromRGB(235,235,235)
-		button.TextColor3 = Color3.fromRGB(20,20,20)
+		button.TextColor3 = Color3.fromRGB(255,255,0)
 		button.TextScaled = true
 		button.Text = string.upper(cmd)
 		button.Font = Enum.Font.Gotham
@@ -817,10 +817,10 @@ spawn(function()
 	splashLabel.Size = UDim2.new(1, 0, 0, 120)
 	splashLabel.Position = UDim2.new(0, 0, 0.5, -60)
 	splashLabel.BackgroundTransparency = 1
-	splashLabel.Text = "Dragon Core"
+	splashLabel.Text = "†Creado por siervos de Dios†"
 	splashLabel.Font = Enum.Font.GothamBold
 	splashLabel.TextScaled = true
-	splashLabel.TextColor3 = Color3.fromRGB(255, 40, 40)
+	splashLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
 	splashLabel.TextTransparency = 1
 	splashLabel.ZIndex = 1001
 
@@ -848,7 +848,7 @@ spawn(function()
 
 	-- notificación de inicio (con pcall por seguridad)
 	pcall(function()
-		StarterGui:SetCore("SendNotification", { Title = "🐉Dragon Core", Text = "Interfaz iniciada", Duration = 2 })
+		StarterGui:SetCore("SendNotification", { Title = "†Divine Core†", Text = "Interfaz iniciada, creado por David y Emmanuel", Duration = 2 })
 	end)
 end)
 
