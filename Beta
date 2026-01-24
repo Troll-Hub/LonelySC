@@ -756,7 +756,7 @@ local function createCommandButtons()
 		local button = Instance.new("TextButton")
 		button.Size = UDim2.new(1, 0, 0, 28)
 		button.BackgroundColor3 = Color3.fromRGB(1,1,1)
-		button.TextColor3 = Color3.fromRGB(25,25,0)
+		button.TextColor3 = Color3.fromRGB(128,4,128)
 		button.TextScaled = true
 		button.Text = string.upper(cmd)
 		button.Font = Enum.Font.Gotham
