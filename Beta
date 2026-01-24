@@ -755,8 +755,8 @@ local function createCommandButtons()
 	for _, cmd in ipairs(commands) do
 		local button = Instance.new("TextButton")
 		button.Size = UDim2.new(1, 0, 0, 28)
-		button.BackgroundColor3 = Color3.fromRGB(0,0,0)
-		button.TextColor3 = Color3.fromRGB(2,2,0)
+		button.BackgroundColor3 = Color3.fromRGB(1,1,1)
+		button.TextColor3 = Color3.fromRGB(25,25,0)
 		button.TextScaled = true
 		button.Text = string.upper(cmd)
 		button.Font = Enum.Font.Gotham
@@ -848,7 +848,7 @@ spawn(function()
 
 	-- notificación de inicio (con pcall por seguridad)
 	pcall(function()
-		StarterGui:SetCore("SendNotification", { Title = "†Divine Core†", Text = "Interfaz iniciada, creado por David y Emmanuel", Duration = 2 })
+		StarterGui:SetCore("SendNotification", { Title = "†Divine Core†", Text = "Interfaz iniciada, creado por David y Emmanuel", Duration = 5 })
 	end)
 end)
 
