@@ -719,7 +719,7 @@ local function executeCommand(command)
 		end
 	end
 
-	pcall(function() StarterGui:SetCore("SendNotification", { Title="🐉Cmds", Text="Comando ejecutado: "..string.upper(command), Duration=0.6 }) end)
+	pcall(function() StarterGui:SetCore("SendNotification", { Title="†Cmds†", Text="Comando ejecutado: "..string.upper(command), Duration=0.3 }) end)
 end
 
 -------------------------------------------------------------------
