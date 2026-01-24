@@ -764,7 +764,7 @@ local function createCommandButtons()
 		button.Parent = ButtonsFrame
 
 		local corner = Instance.new("UICorner", button); corner.CornerRadius = UDim.new(0,10)
-		local stroke = Instance.new("UIStroke", button); stroke.Thickness = 1; stroke.Color = Color3.fromRGB(200,200,200); stroke.Transparency = 0.8
+		local stroke = Instance.new("UIStroke", button); stroke.Thickness = 1; stroke.Color = Color3.fromRGB(0,0,0); stroke.Transparency = 0.8
 
 		local original = button.Size
 		local hoverSize = UDim2.new(1, 8, 0, 32)
