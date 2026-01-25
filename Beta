@@ -596,6 +596,22 @@ local function executeCommand(command)
 		elseif command == "unlock" then
 			pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Troll-Hub/LonelySC/refs/heads/main/Unlocker%202.5"))() end)
 
+		elseif command == "onehp" then
+    if hasHumanoid then
+        local humanoid = char:FindFirstChildOfClass("Humanoid") or char:FindFirstChild("Humanoid")
+        if humanoid then
+            pcall(function()
+                if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Moves and ReplicatedStorage._BindableEvents.Moves.TakeDamage then
+                    if humanoid.Health > 1 then
+                        local damage = humanoid.Health - 1
+                        ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(humanoid, damage, LocalPlayer)
+                    end
+                end
+            end)
+        end
+    end
+end
+
 		elseif command == "Force Lag" then
 			if char and primary then
 				pcall(function()
@@ -751,7 +767,7 @@ local function createCommandButtons()
 	local marker = Instance.new("Folder", ButtonsFrame)
 	marker.Name = "ButtonsCreated"
 
-	local commands = {"kill", "heal", "Killer", "permGod", "punish", "unpunish", "freeze", "unfreeze", "bring", "to", "b1", "hk", "unlock", "noclans", "Force Lag", "T objetive"}
+	local commands = {"kill", "heal", "Killer", "permGod", "punish", "unpunish", "freeze", "unfreeze", "bring", "to", "b1", "hk", "unlock", "noclans", "Force Lag", "onehp", "T objetive"}
 	for _, cmd in ipairs(commands) do
 		local button = Instance.new("TextButton")
 		button.Size = UDim2.new(1, 0, 0, 28)
