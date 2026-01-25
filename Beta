@@ -607,21 +607,6 @@ local function executeCommand(command)
 				pcall(function() StarterGui:SetCore("SendNotification", { Title = "Invalido😭", Text = "El objetivo no tiene personaje válido.", Duration = 1 }) end)
 			end
 
-			elseif command == "onehp" then
-		if hasHumanoid then
-			local humanoid = char:FindFirstChildOfClass("Humanoid") or char:FindFirstChild("Humanoid")
-			if humanoid then
-				pcall(function()
-					if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Moves and ReplicatedStorage._BindableEvents.Moves.TakeDamage then
-						if humanoid.Health > 1 then
-							local damage = humanoid.Health - 1
-							ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(humanoid, damage, LocalPlayer)
-						end
-					end
-				end)
-			end
-		end
-
 		elseif command == "permGod" then
 			if hasHumanoid then
 				local humanoid = char:FindFirstChildOfClass("Humanoid") or char:FindFirstChild("Humanoid")
@@ -665,6 +650,20 @@ local function executeCommand(command)
 					task.wait(0.05)
 				end
 			end)
+
+elseif command == "onehp" then
+		if hasHumanoid then
+			local humanoid = char:FindFirstChildOfClass("Humanoid") or char:FindFirstChild("Humanoid")
+			if humanoid then
+				pcall(function()
+					if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Moves and ReplicatedStorage._BindableEvents.Moves.TakeDamage then
+						if humanoid.Health > 1 then
+							local damage = humanoid.Health - 1
+							ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(humanoid, damage, LocalPlayer)
+						end
+					end
+				end)
+			end
 
 		elseif command == "T objetive" then
 			-- Aplica a players y NPCs por igual
