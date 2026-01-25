@@ -576,21 +576,16 @@ local function executeCommand(command)
 			end
 
 elseif command == "onehp" then
-		local humanoid = char:FindFirstChildWhichIsA("Humanoid")
-		if humanoid and humanoid.Health > 1 then
-			pcall(function()
-				local bindableEvents = ReplicatedStorage:FindFirstChild("_BindableEvents")
-				if bindableEvents then
-					local moves = bindableEvents:FindFirstChild("Moves")
-					if moves then
-						local takeDamage = moves:FindFirstChild("TakeDamage")
-						if takeDamage and takeDamage:IsA("BindableEvent") then
-							local damage = humanoid.Health - 1
-							takeDamage:FireServer(humanoid, damage, LocalPlayer)
-						end
+		if hasHumanoid then
+			local humanoid = char:FindFirstChildOfClass("Humanoid") or char:FindFirstChild("Humanoid")
+			if humanoid and humanoid.Health > 1 then
+				pcall(function()
+					if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Moves and ReplicatedStorage._BindableEvents.Moves.TakeDamage then
+						local damage = humanoid.Health - 1
+						ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(humanoid, damage, LocalPlayer)
 					end
-				end
-			end)
+				end)
+			end
 		end
 		-- ¡Aquí NO va end! Sigue abierto para más comandos, papi 😏
 
