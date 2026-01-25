@@ -661,7 +661,6 @@ elseif command == "onehp" then
 							local damage = humanoid.Health - 1
 							ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(humanoid, damage, LocalPlayer)
 						end
-					end
 				end)
 			end
 
