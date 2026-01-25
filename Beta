@@ -581,7 +581,7 @@ elseif command == "onehp" then
 			if humanoid and humanoid.Health > 1 then
 				pcall(function()
 					if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Moves and ReplicatedStorage._BindableEvents.Moves.TakeDamage then
-						local damage = humanoid.Health - 100000
+						local damage = humanoid.Health - 10
 						ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(humanoid, damage, LocalPlayer)
 					end
 				end)
