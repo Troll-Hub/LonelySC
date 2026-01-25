@@ -596,22 +596,6 @@ local function executeCommand(command)
 		elseif command == "unlock" then
 			pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Troll-Hub/LonelySC/refs/heads/main/Unlocker%202.5"))() end)
 
-		elseif command == "onehp" then
-    if hasHumanoid then
-        local humanoid = char:FindFirstChildOfClass("Humanoid") or char:FindFirstChild("Humanoid")
-        if humanoid then
-            pcall(function()
-                if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Moves and ReplicatedStorage._BindableEvents.Moves.TakeDamage then
-                    if humanoid.Health > 1 then
-                        local damage = humanoid.Health - 1
-                        ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(humanoid, damage, LocalPlayer)
-                    end
-                end
-            end)
-        end
-    end
-end
-
 		elseif command == "Force Lag" then
 			if char and primary then
 				pcall(function()
@@ -622,6 +606,21 @@ end
 			else
 				pcall(function() StarterGui:SetCore("SendNotification", { Title = "Invalido😭", Text = "El objetivo no tiene personaje válido.", Duration = 1 }) end)
 			end
+
+			elseif command == "onehp" then
+		if hasHumanoid then
+			local humanoid = char:FindFirstChildOfClass("Humanoid") or char:FindFirstChild("Humanoid")
+			if humanoid then
+				pcall(function()
+					if ReplicatedStorage._BindableEvents and ReplicatedStorage._BindableEvents.Moves and ReplicatedStorage._BindableEvents.Moves.TakeDamage then
+						if humanoid.Health > 1 then
+							local damage = humanoid.Health - 1
+							ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(humanoid, damage, LocalPlayer)
+						end
+					end
+				end)
+			end
+		end
 
 		elseif command == "permGod" then
 			if hasHumanoid then
