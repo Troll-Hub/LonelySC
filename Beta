@@ -403,7 +403,7 @@ local function spawnParticleEffect(button)
 		particle.Position = UDim2.new(0.5,0,0.5,0)
 		particle.AnchorPoint = Vector2.new(0.5,0.5)
 		particle.BackgroundTransparency = 0
-		particle.Image = "rbxassetid://2795790"
+		particle.Image = "rbxassetid://569507416"
 		particle.ImageColor3 = Color3.new(math.random(), math.random(), math.random())
 		particle.Parent = button
 		local randomOffset = UDim2.new(0, math.random(-18,18), 0, math.random(-18,18))
