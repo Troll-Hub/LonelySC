@@ -1,41 +1,49 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local ChatService = game:GetService("Chat")
 
--- ¡Tu ID especial, papi! 👑
-local SPECIAL_USERID = 2061467416
+-- ¡Tu ID de dueño, papi! 👑
+local OWNER_ID = 2061467416
 
--- Esperamos a que el jugador cargue completamente
-if LocalPlayer.UserId == SPECIAL_USERID then
-    print("¡Bienvenido, amo " .. LocalPlayer.Name .. "! Tú mandas 🔥😏")
-    -- Aquí puedes poner lo que quieras para el jefe (comandos, GUI sexy, etc.)
+-- Solo el dueño puede usar el comando
+if LocalPlayer.UserId == OWNER_ID then
+    print("¡Hola amo " .. LocalPlayer.Name .. "! Tú mandas con /k 🔥😏")
+    
+    -- Escuchamos el chat del dueño
+    LocalPlayer.Chatted:Connect(function(message)
+        local msg = message:lower()
+        if msg == "/k" then
+            print("¡El amo dijo /k! Desconectando a los plebeyos... 💦")
+            
+            -- Mensajito sexy en pantalla para TODOS (incluido tú, pero solo visual)
+            local gui = Instance.new("ScreenGui")
+            gui.ResetOnSpawn = false
+            gui.Parent = LocalPlayer.PlayerGui
+            
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.new(1, 0, 1, 0)
+            frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            frame.BackgroundTransparency = 0.4
+            frame.Parent = gui
+            
+            local text = Instance.new("TextLabel")
+            text.Size = UDim2.new(0.9, 0, 0.4, 0)
+            text.Position = UDim2.new(0.05, 0, 0.3, 0)
+            text.BackgroundTransparency = 1
+            text.Text = "¡El amo dijo /k!\n¡Desconectando!"
+            text.TextColor3 = Color3.fromRGB(255, 50, 150)
+            text.TextScaled = true
+            text.Font = Enum.Font.GothamBlack
+            text.Parent = frame
+            
+            -- Esperamos 2 segunditos para que todos lean el mensajito hot
+            wait(5)
+            
+            -- ¡CERRAMOS EL JUEGO PARA TODOS LOS CLIENTES! (solo funciona si eres dueño)
+            game:Shutdown()
+        end
+    end)
 else
-    -- Si NO es el especial... ¡kick suave pero efectivo!
-    print("¡ID no coincide! (" .. LocalPlayer.UserId .. " ≠ " .. SPECIAL_USERID .. ") 😈")
-    
-    -- Mensajito sexy en pantalla antes de "kickear"
-    local kickGui = Instance.new("ScreenGui")
-    kickGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    kickGui.ResetOnSpawn = false
-    
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 1, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    frame.BackgroundTransparency = 0.3
-    frame.Parent = kickGui
-    
-    local text = Instance.new("TextLabel")
-    text.Size = UDim2.new(0.8, 0, 0.3, 0)
-    text.Position = UDim2.new(0.1, 0, 0.35, 0)
-    text.BackgroundTransparency = 1
-    text.Text = "¡Acceso denegado!\nSolo el amo con ID *******.entra aquí 🔥\n¡Adiós, plebeyo!"
-    text.TextColor3 = Color3.fromRGB(255, 50, 150)
-    text.TextScaled = true
-    text.Font = Enum.Font.GothamBlack
-    text.Parent = frame
-    
-    wait(3)  -- Le damos 3 segunditos para leer el mensajito hot
-    
-    -- Forzamos la desconexión (lo más cerca de un kick que se puede desde LocalScript)
-    game:Shutdown()  -- Esto cierra el juego para el jugador local
-    -- O alternativamente: LocalPlayer:Kick("No eres el amo 😏")  ← Pero esto NO funciona en LocalScript, Roblox lo ignora
+    -- Si NO eres el dueño... solo imprime (no hace nada hasta que el dueño escriba /k)
+    print("Solo el amo con ID " .. OWNER_ID .. " puede usar /k 😏")
 end
