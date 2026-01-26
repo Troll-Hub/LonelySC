@@ -1,4 +1,4 @@
--- loadstring(game:HttpGet("https://raw.githubusercontent.com/Troll-Hub/LonelySC/refs/heads/main/Kick"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Troll-Hub/LonelySC/refs/heads/main/Kick"))()
 
 
 -- Admin Interface completo final
