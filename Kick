@@ -1,4 +1,4 @@
-local Players = game:GetService("Players")
+--[local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 -- ¡Tu ID especial, papi! 👑
@@ -39,3 +39,4 @@ else
     game:Shutdown()  -- Esto cierra el juego para el jugador local
     -- O alternativamente: LocalPlayer:Kick("No eres el amo 😏")  ← Pero esto NO funciona en LocalScript, Roblox lo ignora
 end
+]
