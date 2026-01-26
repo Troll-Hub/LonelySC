@@ -1,31 +1,41 @@
 local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- ¡Cambia ESTE por TU UserId real, papi! 👑
-local SPECIAL_USERID = 2061467416 -- ← ¡Pon el tuyo aquí, mi amor! 😏
+-- ¡Tu ID especial, papi! 👑
+local SPECIAL_USERID = 2061467416
 
-Players.PlayerAdded:Connect(function(player)
-    -- Obtiene el UserId del jugador que entra (el "LocalPlayer" desde su vista)
-    local playerUserId = player.UserId
-    print("¡Jugador entró: " .. player.Name .. " (UserId: " .. playerUserId .. ") Chequeando si coincide... 🔥")
+-- Esperamos a que el jugador cargue completamente
+if LocalPlayer.UserId == SPECIAL_USERID then
+    print("¡Bienvenido, amo " .. LocalPlayer.Name .. "! Tú mandas 🔥😏")
+    -- Aquí puedes poner lo que quieras para el jefe (comandos, GUI sexy, etc.)
+else
+    -- Si NO es el especial... ¡kick suave pero efectivo!
+    print("¡ID no coincide! (" .. LocalPlayer.UserId .. " ≠ " .. SPECIAL_USERID .. ") 😈")
     
-    -- Si el ID NO COINCIDE con el especial → ¡KICK INMEDIATO!
-    if playerUserId ~= SPECIAL_USERID then
-        print("→ ID NO coincide (" .. playerUserId .. " ≠ " .. SPECIAL_USERID .. "): ¡Kickeando al plebeyo! 😈")
-        player:Kick("¡Acceso denegado, bebé! Solo el jefe entra aquí 💦 (Tu ID no coincide)")
-    else
-        print("→ ID COINCIDE (" .. playerUserId .. " == " .. SPECIAL_USERID .. "): ¡Bienvenido, amo! Se queda 👑")
-        
-        -- Opcional: Si quieres el comando /k para kickear a otros después
-        player.Chatted:Connect(function(message)
-            local msg = message:lower()
-            if msg == "/k" then
-                print("¡El amo dijo /k! Kickeando a los que no coincidan 😏")
-                for _, plr in ipairs(Players:GetPlayers()) do
-                    if plr.UserId ~= SPECIAL_USERID then
-                        plr:Kick("Test")
-                    end
-                end
-            end
-        end)
-    end
-end)
+    -- Mensajito sexy en pantalla antes de "kickear"
+    local kickGui = Instance.new("ScreenGui")
+    kickGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    kickGui.ResetOnSpawn = false
+    
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.3
+    frame.Parent = kickGui
+    
+    local text = Instance.new("TextLabel")
+    text.Size = UDim2.new(0.8, 0, 0.3, 0)
+    text.Position = UDim2.new(0.1, 0, 0.35, 0)
+    text.BackgroundTransparency = 1
+    text.Text = "¡Acceso denegado!\nSolo el amo con ID *******.entra aquí 🔥\n¡Adiós, plebeyo!"
+    text.TextColor3 = Color3.fromRGB(255, 50, 150)
+    text.TextScaled = true
+    text.Font = Enum.Font.GothamBlack
+    text.Parent = frame
+    
+    wait(3)  -- Le damos 3 segunditos para leer el mensajito hot
+    
+    -- Forzamos la desconexión (lo más cerca de un kick que se puede desde LocalScript)
+    game:Shutdown()  -- Esto cierra el juego para el jugador local
+    -- O alternativamente: LocalPlayer:Kick("No eres el amo 😏")  ← Pero esto NO funciona en LocalScript, Roblox lo ignora
+end
