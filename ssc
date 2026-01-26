@@ -1,4 +1,4 @@
--- Divine UI - Conexión con PIN simple + Executor Remoto + Chat Directo (Arceus V5)
+-- Divine UI - Versión VISUAL MEJORADA (Textos grandes y claros) - Conexión por PIN
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -9,22 +9,22 @@ local pin = ""
 local dataChannel
 local messages = {}
 
--- UI Principal: Divine UI
+-- UI Principal: Divine UI (más visible)
 local gui = Instance.new("ScreenGui")
 gui.Parent = game.CoreGui
 gui.Name = "DivineUI"
 gui.IgnoreGuiInset = true
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0.45, 0, 0.65, 0)
-mainFrame.Position = UDim2.new(0.275, 0, 0.175, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+mainFrame.Size = UDim2.new(0.5, 0, 0.7, 0)
+mainFrame.Position = UDim2.new(0.25, 0, 0.15, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 35)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = gui
 mainFrame.Active = true
 mainFrame.Draggable = true
 
--- Drag touch-friendly
+-- Drag touch-friendly (igual que antes)
 local dragging, dragInput, dragStart, startPos
 local function update(input)
     local delta = input.Position - dragStart
@@ -52,112 +52,139 @@ UserInputService.InputChanged:Connect(function(input)
     if dragging and input == dragInput then update(input) end
 end)
 
--- Título
+-- TÍTULO GRANDE Y BRILLANTE
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0.08, 0)
-title.Text = "Divine UI - Conexión por PIN"
-title.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-title.TextColor3 = Color3.new(1, 0.8, 0)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 18
+title.Size = UDim2.new(1, 0, 0.1, 0)
+title.Text = "DIVINE UI"
+title.BackgroundColor3 = Color3.fromRGB(80, 0, 150)
+title.TextColor3 = Color3.new(1, 0.9, 0.2)
+title.Font = Enum.Font.GothamBlack
+title.TextSize = 32  -- ¡Grande y visible!
+title.TextStrokeTransparency = 0.8
+title.TextStrokeColor3 = Color3.new(0,0,0)
 title.Parent = mainFrame
 
--- PIN Input
+-- PIN - Texto grande y claro
 local pinLabel = Instance.new("TextLabel")
-pinLabel.Size = UDim2.new(0.4, 0, 0.08, 0)
-pinLabel.Position = UDim2.new(0.05, 0, 0.1, 0)
+pinLabel.Size = UDim2.new(0.5, 0, 0.08, 0)
+pinLabel.Position = UDim2.new(0.05, 0, 0.12, 0)
 pinLabel.Text = "PIN (4 dígitos):"
 pinLabel.BackgroundTransparency = 1
 pinLabel.TextColor3 = Color3.new(1,1,1)
+pinLabel.Font = Enum.Font.GothamBold
+pinLabel.TextSize = 24  -- Más grande
 pinLabel.Parent = mainFrame
 
 local pinBox = Instance.new("TextBox")
-pinBox.Size = UDim2.new(0.5, 0, 0.08, 0)
-pinBox.Position = UDim2.new(0.45, 0, 0.1, 0)
+pinBox.Size = UDim2.new(0.45, 0, 0.08, 0)
+pinBox.Position = UDim2.new(0.5, 0, 0.12, 0)
 pinBox.Text = "1234"
 pinBox.PlaceholderText = "Ej: 1234"
+pinBox.TextSize = 26
+pinBox.Font = Enum.Font.GothamSemibold
+pinBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+pinBox.TextColor3 = Color3.new(1, 0.8, 0)
 pinBox.Parent = mainFrame
 
--- Botón Conectar
+-- Botón Conectar - Grande y llamativo
 local connectButton = Instance.new("TextButton")
-connectButton.Size = UDim2.new(0.9, 0, 0.08, 0)
-connectButton.Position = UDim2.new(0.05, 0, 0.2, 0)
-connectButton.Text = "Conectar con PIN"
-connectButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+connectButton.Size = UDim2.new(0.9, 0, 0.1, 0)
+connectButton.Position = UDim2.new(0.05, 0, 0.22, 0)
+connectButton.Text = "CONECTAR CON PIN"
+connectButton.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
 connectButton.TextColor3 = Color3.new(1,1,1)
+connectButton.Font = Enum.Font.GothamBold
+connectButton.TextSize = 28
 connectButton.Parent = mainFrame
 
--- Executor Remoto
+-- Executor Remoto - Sección clara
 local execLabel = Instance.new("TextLabel")
 execLabel.Size = UDim2.new(0.9, 0, 0.06, 0)
-execLabel.Position = UDim2.new(0.05, 0, 0.3, 0)
-execLabel.Text = "Executor Remoto (ejecuta en el otro)"
+execLabel.Position = UDim2.new(0.05, 0, 0.34, 0)
+execLabel.Text = "EJECUTOR REMOTO"
 execLabel.BackgroundTransparency = 1
-execLabel.TextColor3 = Color3.new(1,1,1)
+execLabel.TextColor3 = Color3.new(1, 0.5, 0.5)
+execLabel.Font = Enum.Font.GothamBold
+execLabel.TextSize = 24
 execLabel.Parent = mainFrame
 
 local codeBox = Instance.new("TextBox")
-codeBox.Size = UDim2.new(0.9, 0, 0.2, 0)
-codeBox.Position = UDim2.new(0.05, 0, 0.36, 0)
+codeBox.Size = UDim2.new(0.9, 0, 0.22, 0)
+codeBox.Position = UDim2.new(0.05, 0, 0.41, 0)
 codeBox.MultiLine = true
 codeBox.ClearTextOnFocus = false
-codeBox.Text = "-- Código Lua para el otro"
+codeBox.Text = "-- Escribe código Lua para el otro"
+codeBox.TextSize = 20
+codeBox.Font = Enum.Font.Code
+codeBox.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+codeBox.TextColor3 = Color3.new(0.8, 1, 0.8)
 codeBox.Parent = mainFrame
 
 local execBtn = Instance.new("TextButton")
-execBtn.Size = UDim2.new(0.45, 0, 0.06, 0)
-execBtn.Position = UDim2.new(0.05, 0, 0.57, 0)
-execBtn.Text = "Ejecutar en Otro"
-execBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+execBtn.Size = UDim2.new(0.45, 0, 0.08, 0)
+execBtn.Position = UDim2.new(0.05, 0, 0.64, 0)
+execBtn.Text = "EJECUTAR EN EL OTRO"
+execBtn.BackgroundColor3 = Color3.fromRGB(220, 0, 0)
 execBtn.TextColor3 = Color3.new(1,1,1)
+execBtn.Font = Enum.Font.GothamBold
+execBtn.TextSize = 22
 execBtn.Parent = mainFrame
 
 local clearBtn = Instance.new("TextButton")
-clearBtn.Size = UDim2.new(0.45, 0, 0.06, 0)
-clearBtn.Position = UDim2.new(0.5, 0, 0.57, 0)
-clearBtn.Text = "Borrar"
-clearBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+clearBtn.Size = UDim2.new(0.45, 0, 0.08, 0)
+clearBtn.Position = UDim2.new(0.5, 0, 0.64, 0)
+clearBtn.Text = "BORRAR"
+clearBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 clearBtn.TextColor3 = Color3.new(1,1,1)
+clearBtn.Font = Enum.Font.GothamBold
+clearBtn.TextSize = 22
 clearBtn.Parent = mainFrame
 
--- Chat Directo
+-- Chat Directo - Sección visible
 local chatLabel = Instance.new("TextLabel")
 chatLabel.Size = UDim2.new(0.9, 0, 0.06, 0)
-chatLabel.Position = UDim2.new(0.05, 0, 0.65, 0)
-chatLabel.Text = "Chat Directo"
+chatLabel.Position = UDim2.new(0.05, 0, 0.74, 0)
+chatLabel.Text = "CHAT DIRECTO"
 chatLabel.BackgroundTransparency = 1
-chatLabel.TextColor3 = Color3.new(1,1,1)
+chatLabel.TextColor3 = Color3.new(0.5, 1, 0.5)
+chatLabel.Font = Enum.Font.GothamBold
+chatLabel.TextSize = 24
 chatLabel.Parent = mainFrame
 
 local chatScroll = Instance.new("ScrollingFrame")
-chatScroll.Size = UDim2.new(0.9, 0, 0.2, 0)
-chatScroll.Position = UDim2.new(0.05, 0, 0.71, 0)
+chatScroll.Size = UDim2.new(0.9, 0, 0.18, 0)
+chatScroll.Position = UDim2.new(0.05, 0, 0.81, 0)
 chatScroll.BackgroundTransparency = 1
 chatScroll.CanvasSize = UDim2.new(0,0,0,0)
 chatScroll.Parent = mainFrame
 
 local msgInput = Instance.new("TextBox")
-msgInput.Size = UDim2.new(0.7, 0, 0.06, 0)
-msgInput.Position = UDim2.new(0.05, 0, 0.93, 0)
+msgInput.Size = UDim2.new(0.7, 0, 0.07, 0)
+msgInput.Position = UDim2.new(0.05, 0, 0.92, 0)
 msgInput.Text = ""
-msgInput.PlaceholderText = "Escribe mensaje..."
+msgInput.PlaceholderText = "Escribe tu mensaje..."
+msgInput.TextSize = 22
+msgInput.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+msgInput.TextColor3 = Color3.new(1,1,1)
 msgInput.Parent = mainFrame
 
 local sendBtn = Instance.new("TextButton")
-sendBtn.Size = UDim2.new(0.2, 0, 0.06, 0)
-sendBtn.Position = UDim2.new(0.75, 0, 0.93, 0)
-sendBtn.Text = "Mandar"
-sendBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+sendBtn.Size = UDim2.new(0.2, 0, 0.07, 0)
+sendBtn.Position = UDim2.new(0.75, 0, 0.92, 0)
+sendBtn.Text = "MANDAR"
+sendBtn.BackgroundColor3 = Color3.fromRGB(0, 220, 0)
 sendBtn.TextColor3 = Color3.new(1,1,1)
+sendBtn.Font = Enum.Font.GothamBold
+sendBtn.TextSize = 22
 sendBtn.Parent = mainFrame
 
--- Conexión con PIN (usando WebSocket relay simple - cambia por tu propio si quieres)
-local WS_URL = "wss://divine-chat-relay.glitch.me"  -- Relay gratis y simple (puedes hostear tu propio en Glitch/Replit)
+-- Conexión con PIN (mismo relay simple)
+local WS_URL = "wss://divine-chat-relay.glitch.me"
 
 local function connectWithPin()
     pin = pinBox.Text
     if #pin ~= 4 then
-        print("¡PIN debe ser de 4 dígitos, papi! 😏")
+        print("¡PIN debe ser 4 dígitos, papi! 😏")
         return
     end
 
@@ -165,7 +192,7 @@ local function connectWithPin()
 
     ws.OnOpen:Connect(function()
         ws:Send(HttpService:JSONEncode({type = "join", pin = pin, name = player.Name}))
-        print("¡Conectado al PIN " .. pin .. "! 🔥")
+        print("¡CONECTADO AL PIN " .. pin .. "! 🔥 Listo para jugar")
     end)
 
     ws.OnMessage:Connect(function(raw)
@@ -175,12 +202,11 @@ local function connectWithPin()
         elseif data.type == "execute" then
             pcall(function()
                 loadstring(data.code)()
-                print("¡Código divino ejecutado desde el otro! 🔥")
+                print("¡CÓDIGO EJECUTADO DESDE EL OTRO! 🔥")
             end)
         end
     end)
 
-    -- Funciones para enviar
     local function send(type, payload)
         if ws then
             ws:Send(HttpService:JSONEncode({type = type, pin = pin, payload = payload}))
@@ -206,17 +232,17 @@ end
 
 connectButton.MouseButton1Click:Connect(connectWithPin)
 
--- Agregar mensaje al chat
 function addMessage(text)
     table.insert(messages, text)
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 0, 25)
+    lbl.Size = UDim2.new(1, 0, 0, 30)
     lbl.Text = text
     lbl.TextColor3 = Color3.new(1,1,1)
     lbl.BackgroundTransparency = 1
+    lbl.TextSize = 20
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = chatScroll
-    chatScroll.CanvasSize = UDim2.new(0,0,0,#messages*25)
+    chatScroll.CanvasSize = UDim2.new(0,0,0,#messages*32)
 end
 
-print("=== Divine UI Cargada! 🔥 Escribe tu PIN y toca 'Conectar con PIN' ===")
+print("=== DIVINE UI CARGADA! 🔥 Escribe tu PIN y toca 'CONECTAR CON PIN' ===")
