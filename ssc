@@ -1,311 +1,396 @@
--- Divine UI - CONEXIÓN P2P AUTOMÁTICA con PIN (sin nada manual)
+-- Script LocalScript para ejecutores de Roblox (Synapse, Krnl, Fluxus, Solara, etc.)
+-- 💋 AHORA CON DRAG + TOUCH (móvil perfecto, papi! 😈 Mueve la GUI arrastrando el título)
+-- Permite chat P2P entre dos clientes vía rentry.co (HTTP polling + update)
+-- + Ejecución remota de código (prefijo "//EXEC <código>")
+-- Uso: Ambos jugadores usan el MISMO "channel" (secreto compartido, ej: "miroom123")
+-- Activa "AutoExec" para ejecutar códigos recibidos automáticamente (¡cuidado, confía en el otro!)
 
-local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local player = Players.LocalPlayer
 
-local pin = ""
-local peer = nil
-local dataChannel = nil
-local messages = {}
-local signalingURL = "https://free.signaling.chat/"  -- Crea uno en glitch.me si prefieres
+local http_request = request or http_request or (syn and syn.request) or (http and http.request) or error("Executor no soporta HTTP")
 
--- UI Principal
-local gui = Instance.new("ScreenGui")
-gui.Parent = game.CoreGui
-gui.Name = "DivineUI"
-gui.IgnoreGuiInset = true
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ExecutorChatP2P"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
 
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0.5, 0, 0.7, 0)
-mainFrame.Position = UDim2.new(0.25, 0, 0.15, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 35)
-mainFrame.BorderSizePixel = 0
-mainFrame.Parent = gui
-mainFrame.Active = true
-mainFrame.Draggable = true
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 450, 0, 550)
+MainFrame.Position = UDim2.new(0, 20, 0, 20)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+MainFrame.Active = true  -- Para drag
 
--- Drag touch-friendly
-local dragging, dragInput, dragStart, startPos
-local function update(input)
-    local delta = input.Position - dragStart
-    mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-end
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = MainFrame
 
-mainFrame.InputBegan:Connect(function(input)
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+Title.BorderSizePixel = 0
+Title.Text = "💬 Chat P2P + RCE para Ejecutores"
+Title.TextColor3 = Color3.new(1,1,1)
+Title.TextScaled = true
+Title.Font = Enum.Font.GothamBold
+Title.Parent = MainFrame
+
+local UICornerTitle = Instance.new("UICorner")
+UICornerTitle.CornerRadius = UDim.new(0, 12)
+UICornerTitle.Parent = Title
+
+-- 🥵 DRAG + TOUCH MAGIC (arrastrar título con mouse o dedo)
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+Title.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
-        startPos = mainFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
+        startPos = MainFrame.Position
     end
 end)
 
-mainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
+Title.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input == dragInput then update(input) end
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
 end)
 
--- Título
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0.1, 0)
-title.Text = "DIVINE UI - P2P AUTO"
-title.BackgroundColor3 = Color3.fromRGB(80, 0, 150)
-title.TextColor3 = Color3.new(1, 0.9, 0.2)
-title.Font = Enum.Font.GothamBlack
-title.TextSize = 32
-title.TextStrokeTransparency = 0.7
-title.TextStrokeColor3 = Color3.new(0,0,0)
-title.Parent = mainFrame
+-- Variables
+local channel = ""
+local myName = ""
+local connected = false
+local autoExec = false
+local lastContent = ""
+local ChatScroll = nil
+local ListLayout = nil
+local InputBox = nil
+local CodeBox = nil
 
--- PIN
-local pinLabel = Instance.new("TextLabel")
-pinLabel.Size = UDim2.new(0.5, 0, 0.08, 0)
-pinLabel.Position = UDim2.new(0.05, 0, 0.12, 0)
-pinLabel.Text = "PIN (4 dígitos):"
-pinLabel.BackgroundTransparency = 1
-pinLabel.TextColor3 = Color3.new(1,1,1)
-pinLabel.Font = Enum.Font.GothamBold
-pinLabel.TextSize = 20
-pinLabel.Parent = mainFrame
-
-local pinBox = Instance.new("TextBox")
-pinBox.Size = UDim2.new(0.45, 0, 0.08, 0)
-pinBox.Position = UDim2.new(0.5, 0, 0.12, 0)
-pinBox.Text = "1234"
-pinBox.PlaceholderText = "Ej: 1234"
-pinBox.TextSize = 22
-pinBox.Font = Enum.Font.GothamSemibold
-pinBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-pinBox.TextColor3 = Color3.new(1, 0.8, 0)
-pinBox.Parent = mainFrame
-
-local connectButton = Instance.new("TextButton")
-connectButton.Size = UDim2.new(0.9, 0, 0.1, 0)
-connectButton.Position = UDim2.new(0.05, 0, 0.22, 0)
-connectButton.Text = "CONECTAR AUTOMÁTICO"
-connectButton.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-connectButton.TextColor3 = Color3.new(1,1,1)
-connectButton.Font = Enum.Font.GothamBold
-connectButton.TextSize = 24
-connectButton.Parent = mainFrame
-
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(0.9, 0, 0.06, 0)
-statusLabel.Position = UDim2.new(0.05, 0, 0.33, 0)
-statusLabel.Text = "Estado: Esperando PIN..."
-statusLabel.BackgroundTransparency = 1
-statusLabel.TextColor3 = Color3.new(1, 0.8, 0)
-statusLabel.Font = Enum.Font.GothamBold
-statusLabel.TextSize = 18
-statusLabel.Parent = mainFrame
-
--- Executor Remoto
-local execLabel = Instance.new("TextLabel")
-execLabel.Size = UDim2.new(0.9, 0, 0.06, 0)
-execLabel.Position = UDim2.new(0.05, 0, 0.4, 0)
-execLabel.Text = "EJECUTOR REMOTO"
-execLabel.BackgroundTransparency = 1
-execLabel.TextColor3 = Color3.new(1, 0.5, 0.5)
-execLabel.Font = Enum.Font.GothamBold
-execLabel.TextSize = 20
-execLabel.Parent = mainFrame
-
-local codeBox = Instance.new("TextBox")
-codeBox.Size = UDim2.new(0.9, 0, 0.22, 0)
-codeBox.Position = UDim2.new(0.05, 0, 0.46, 0)
-codeBox.MultiLine = true
-codeBox.ClearTextOnFocus = false
-codeBox.Text = "-- Escribe código Lua para el otro"
-codeBox.TextSize = 16
-codeBox.Font = Enum.Font.Code
-codeBox.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-codeBox.TextColor3 = Color3.new(0.8, 1, 0.8)
-codeBox.Parent = mainFrame
-
-local execBtn = Instance.new("TextButton")
-execBtn.Size = UDim2.new(0.45, 0, 0.08, 0)
-execBtn.Position = UDim2.new(0.05, 0, 0.69, 0)
-execBtn.Text = "EJECUTAR EN EL OTRO"
-execBtn.BackgroundColor3 = Color3.fromRGB(220, 0, 0)
-execBtn.TextColor3 = Color3.new(1,1,1)
-execBtn.Font = Enum.Font.GothamBold
-execBtn.TextSize = 18
-execBtn.Parent = mainFrame
-
-local clearBtn = Instance.new("TextButton")
-clearBtn.Size = UDim2.new(0.45, 0, 0.08, 0)
-clearBtn.Position = UDim2.new(0.5, 0, 0.69, 0)
-clearBtn.Text = "BORRAR"
-clearBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-clearBtn.TextColor3 = Color3.new(1,1,1)
-clearBtn.Font = Enum.Font.GothamBold
-clearBtn.TextSize = 18
-clearBtn.Parent = mainFrame
-
--- Chat Directo
-local chatLabel = Instance.new("TextLabel")
-chatLabel.Size = UDim2.new(0.9, 0, 0.06, 0)
-chatLabel.Position = UDim2.new(0.05, 0, 0.78, 0)
-chatLabel.Text = "CHAT DIRECTO"
-chatLabel.BackgroundTransparency = 1
-chatLabel.TextColor3 = Color3.new(0.5, 1, 0.5)
-chatLabel.Font = Enum.Font.GothamBold
-chatLabel.TextSize = 20
-chatLabel.Parent = mainFrame
-
-local chatScroll = Instance.new("ScrollingFrame")
-chatScroll.Size = UDim2.new(0.9, 0, 0.16, 0)
-chatScroll.Position = UDim2.new(0.05, 0, 0.84, 0)
-chatScroll.BackgroundTransparency = 1
-chatScroll.CanvasSize = UDim2.new(0,0,0,0)
-chatScroll.Parent = mainFrame
-
-local msgInput = Instance.new("TextBox")
-msgInput.Size = UDim2.new(0.7, 0, 0.06, 0)
-msgInput.Position = UDim2.new(0.05, 0, 0.92, 0)
-msgInput.Text = ""
-msgInput.PlaceholderText = "Escribe tu mensaje..."
-msgInput.TextSize = 18
-msgInput.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-msgInput.TextColor3 = Color3.new(1,1,1)
-msgInput.Parent = mainFrame
-
-local sendBtn = Instance.new("TextButton")
-sendBtn.Size = UDim2.new(0.2, 0, 0.06, 0)
-sendBtn.Position = UDim2.new(0.75, 0, 0.92, 0)
-sendBtn.Text = "MANDAR"
-sendBtn.BackgroundColor3 = Color3.fromRGB(0, 220, 0)
-sendBtn.TextColor3 = Color3.new(1,1,1)
-sendBtn.Font = Enum.Font.GothamBold
-sendBtn.TextSize = 18
-sendBtn.Parent = mainFrame
-
--- WebRTC + Signaling Automático
-local stunServers = {
-    {urls = "stun:stun.l.google.com:19302"},
-    {urls = "stun:stun1.l.google.com:19302"}
-}
-
-local function sendSignal(data)
-    pcall(function()
-        HttpService:PostAsync(signalingURL .. pin, HttpService:JSONEncode(data))
-    end)
+-- Función para crear labels en scroll
+local function createLabel(text)
+    local lbl = Instance.new("TextLabel")
+    lbl.BackgroundTransparency = 1
+    lbl.Size = UDim2.new(1, -15, 0, 0)
+    lbl.Text = text
+    lbl.TextColor3 = Color3.new(1, 1, 1)
+    lbl.TextSize = 14
+    lbl.Font = Enum.Font.SourceSans
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.TextWrapped = true
+    lbl.LayoutOrder = 999 -- Se ordena por layout
+    lbl.Parent = ChatScroll
+    return lbl
 end
 
-local function pollSignal()
-    pcall(function()
-        local response = HttpService:GetAsync(signalingURL .. pin)
-        if response and response ~= "" then
-            local data = HttpService:JSONDecode(response)
-            if data.type == "offer" and data.sender ~= player.Name then
-                peer:SetRemoteDescription(data)
-                peer:CreateAnswer(function(answer)
-                    peer:SetLocalDescription(answer)
-                    sendSignal({type = "answer", sdp = answer.sdp, sender = player.Name})
-                end)
-            elseif data.type == "answer" and data.sender ~= player.Name then
-                peer:SetRemoteDescription(data)
-            elseif data.type == "candidate" and data.sender ~= player.Name then
-                peer:AddIceCandidate(data)
+-- Actualizar chat
+local function updateChat(content)
+    lastContent = content
+    -- Limpiar
+    for _, child in pairs(ChatScroll:GetChildren()) do
+        if child:IsA("TextLabel") then
+            child:Destroy()
+        end
+    end
+    -- Líneas
+    local lines = {}
+    for line in content:gmatch("[^\n\r]+") do
+        if line ~= "" then
+            table.insert(lines, line)
+        end
+    end
+    -- Crear labels
+    for i, line in ipairs(lines) do
+        createLabel(line)
+        -- AutoExec?
+        if autoExec and line:find("^//EXEC ") then
+            local code = line:match("^//EXEC (.*)")
+            local success, func = pcall(loadstring, code)
+            if success and func then
+                pcall(func)
+                createLabel("[RCE] Ejecutado: " .. code:sub(1, 50) .. (code:len() > 50 and "..." or ""))
             end
+        end
+    end
+end
+
+-- Polling loop
+local pollConnection
+local function startPolling()
+    if pollConnection then pollConnection:Disconnect() end
+    spawn(function()
+        while connected do
+            local ok, res = pcall(http_request, {
+                Url = "https://rentry.co/" .. channel .. "/raw",
+                Method = "GET"
+            })
+            if ok and res.StatusCode == 200 then
+                local body = res.Body or ""
+                if body ~= lastContent then
+                    updateChat(body)
+                end
+            end
+            wait(0.4) -- Bajo lag
         end
     end)
 end
 
-local function connectAutomatic()
-    pin = pinBox.Text
-    if #pin ~= 4 then
-        statusLabel.Text = "¡Error: PIN de 4 dígitos!"
-        statusLabel.TextColor3 = Color3.new(1, 0, 0)
+-- Enviar mensaje
+local function sendMessage(msg, isCode)
+    if not connected then return end
+    local prefix = isCode and "//EXEC " or ""
+    msg = prefix .. msg
+    local ok, res = pcall(http_request, {
+        Url = "https://rentry.co/" .. channel .. "/raw",
+        Method = "GET"
+    })
+    local curr = ok and res.StatusCode == 200 and (res.Body or "") or ""
+    local newBody = curr .. "\n" .. myName .. ": " .. msg
+    pcall(http_request, {
+        Url = "https://rentry.co/" .. channel .. "/raw",
+        Method = "PUT",
+        Headers = {
+            ["Content-Type"] = "text/plain; charset=utf-8"
+        },
+        Body = newBody
+    })
+end
+
+-- Inputs
+local InputFrame = Instance.new("Frame")
+InputFrame.Size = UDim2.new(1, -20, 0, 35)
+InputFrame.Position = UDim2.new(0, 10, 1, -45)
+InputFrame.BackgroundTransparency = 1
+InputFrame.Parent = MainFrame
+
+InputBox = Instance.new("TextBox")
+InputBox.Size = UDim2.new(1, -80, 1, 0)
+InputBox.Position = UDim2.new(0, 0, 0, 0)
+InputBox.PlaceholderText = "Escribe mensaje..."
+InputBox.Text = ""
+InputBox.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+InputBox.TextColor3 = Color3.new(1,1,1)
+InputBox.Font = Enum.Font.SourceSans
+InputBox.TextSize = 14
+InputBox.Parent = InputFrame
+
+local SendBtn = Instance.new("TextButton")
+SendBtn.Size = UDim2.new(0, 70, 1, 0)
+SendBtn.Position = UDim2.new(1, -70, 0, 0)
+SendBtn.Text = "Enviar"
+SendBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+SendBtn.TextColor3 = Color3.new(1,1,1)
+SendBtn.Font = Enum.Font.GothamBold
+SendBtn.Parent = InputFrame
+
+-- Code input
+local CodeFrame = Instance.new("Frame")
+CodeFrame.Size = UDim2.new(1, -20, 0, 35)
+CodeFrame.Position = UDim2.new(0, 10, 1, -85)
+CodeFrame.BackgroundTransparency = 1
+CodeFrame.Parent = MainFrame
+
+CodeBox = Instance.new("TextBox")
+CodeBox.Size = UDim2.new(1, -80, 1, 0)
+CodeBox.PlaceholderText = "Código Lua para enviar (ej: print('hi'))"
+CodeBox.Text = ""
+CodeBox.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+CodeBox.TextColor3 = Color3.new(1,1,1)
+CodeBox.Font = Enum.Font.SourceSans
+CodeBox.TextSize = 14
+CodeBox.Parent = CodeFrame
+
+local ExecBtn = Instance.new("TextButton")
+ExecBtn.Size = UDim2.new(0, 70, 1, 0)
+ExecBtn.Position = UDim2.new(1, -70, 0, 0)
+ExecBtn.Text = "RCE ➤"
+ExecBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+ExecBtn.TextColor3 = Color3.new(1,1,1)
+ExecBtn.Font = Enum.Font.GothamBold
+ExecBtn.Parent = CodeFrame
+
+-- Config top
+local ConfigFrame = Instance.new("Frame")
+ConfigFrame.Size = UDim2.new(1, -20, 0, 80)
+ConfigFrame.Position = UDim2.new(0, 10, 0, 45)
+ConfigFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+ConfigFrame.Parent = MainFrame
+
+local NameLabel = Instance.new("TextLabel")
+NameLabel.Size = UDim2.new(0.3, 0, 0.5, 0)
+NameLabel.Position = UDim2.new(0, 10, 0, 5)
+NameLabel.Text = "Tu Nombre:"
+NameLabel.BackgroundTransparency = 1
+NameLabel.TextColor3 = Color3.new(0.8,0.8,0.8)
+NameLabel.Font = Enum.Font.SourceSansBold
+NameLabel.TextSize = 13
+NameLabel.Parent = ConfigFrame
+
+local NameInput = Instance.new("TextBox")
+NameInput.Size = UDim2.new(0.65, -10, 0.5, 0)
+NameInput.Position = UDim2.new(0.3, 0, 0, 5)
+NameInput.PlaceholderText = "PapiDavid"
+NameInput.Text = Players.LocalPlayer.Name
+NameInput.BackgroundColor3 = Color3.fromRGB(60,60,65)
+NameInput.TextColor3 = Color3.new(1,1,1)
+NameInput.Font = Enum.Font.SourceSans
+NameInput.TextSize = 14
+NameInput.Parent = ConfigFrame
+
+local ChannelLabel = Instance.new("TextLabel")
+ChannelLabel.Size = UDim2.new(0.3, 0, 0.5, 0)
+ChannelLabel.Position = UDim2.new(0, 10, 0.5, 5)
+ChannelLabel.Text = "Channel:"
+ChannelLabel.BackgroundTransparency = 1
+ChannelLabel.TextColor3 = Color3.new(0.8,0.8,0.8)
+ChannelLabel.Font = Enum.Font.SourceSansBold
+ChannelLabel.TextSize = 13
+ChannelLabel.Parent = ConfigFrame
+
+local ChannelInput = Instance.new("TextBox")
+ChannelInput.Size = UDim2.new(0.65, -10, 0.5, 0)
+ChannelInput.Position = UDim2.new(0.3, 0, 0.5, 5)
+ChannelInput.PlaceholderText = "miroom123 (secreto compartido)"
+ChannelInput.Text = ""
+ChannelInput.BackgroundColor3 = Color3.fromRGB(60,60,65)
+ChannelInput.TextColor3 = Color3.new(1,1,1)
+ChannelInput.Font = Enum.Font.SourceSans
+ChannelInput.TextSize = 14
+ChannelInput.Parent = ConfigFrame
+
+local ConnectBtn = Instance.new("TextButton")
+ConnectBtn.Size = UDim2.new(0, 100, 0, 30)
+ConnectBtn.Position = UDim2.new(1, -110, 0.5, -15)
+ConnectBtn.Text = "🔌 Conectar"
+ConnectBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+ConnectBtn.TextColor3 = Color3.new(1,1,1)
+ConnectBtn.Font = Enum.Font.GothamBold
+ConnectBtn.TextSize = 14
+ConnectBtn.Parent = ConfigFrame
+
+local AutoExecBtn = Instance.new("TextButton")
+AutoExecBtn.Size = UDim2.new(0, 120, 0, 25)
+AutoExecBtn.Position = UDim2.new(0, 10, 1, -30)
+AutoExecBtn.Text = "AutoExec: OFF ⚠️"
+AutoExecBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+AutoExecBtn.TextColor3 = Color3.new(1,1,1)
+AutoExecBtn.Font = Enum.Font.Gotham
+AutoExecBtn.TextSize = 12
+AutoExecBtn.Parent = MainFrame
+
+-- Status
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(1, 0, 0, 25)
+StatusLabel.Position = UDim2.new(0, 0, 0, 130)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "Estado: Desconectado"
+StatusLabel.TextColor3 = Color3.new(1, 0.5, 0.5)
+StatusLabel.Font = Enum.Font.SourceSansBold
+StatusLabel.TextSize = 14
+StatusLabel.Parent = MainFrame
+
+-- Chat Scroll
+ChatScroll = Instance.new("ScrollingFrame")
+ChatScroll.Size = UDim2.new(1, -20, 1, -170)
+ChatScroll.Position = UDim2.new(0, 10, 0, 160)
+ChatScroll.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+ChatScroll.BorderSizePixel = 0
+ChatScroll.ScrollBarThickness = 8
+ChatScroll.ScrollBarImageColor3 = Color3.fromRGB(100,100,100)
+ChatScroll.CanvasSize = UDim2.new(0,0,0,0)
+ChatScroll.Parent = MainFrame
+
+ListLayout = Instance.new("UIListLayout")
+ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ListLayout.Padding = UDim.new(0, 3)
+ListLayout.Parent = ChatScroll
+
+ListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    ChatScroll.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y + 10)
+end)
+
+-- Eventos
+ConnectBtn.MouseButton1Click:Connect(function()
+    channel = ChannelInput.Text:gsub("%s+", "") -- No espacios
+    myName = NameInput.Text
+    if channel == "" then
+        StatusLabel.Text = "❌ Channel vacío!"
         return
     end
-
-    statusLabel.Text = "Conectando automáticamente con PIN " .. pin .. "..."
-
-    peer = getgenv().webrtc.createPeerConnection({iceServers = stunServers})
-
-    peer.OnIceCandidate = function(candidate)
-        if candidate then
-            sendSignal({type = "candidate", candidate = candidate, sender = player.Name})
+    -- Crear si no existe
+    local res = http_request({Url = "https://rentry.co/" .. channel .. "/raw", Method = "GET"})
+    if res.StatusCode == 404 then
+        local postBody = string.format("rentry_name=%s&rentry_title=%s Chat&rentry=¡Bienvenido %s! Esperando al otro jugador...\n", channel, channel, myName)
+        local createRes = http_request({
+            Url = "https://rentry.co/api/pastes/new",
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/x-www-form-urlencoded"},
+            Body = postBody
+        })
+        if createRes.StatusCode ~= 200 then
+            StatusLabel.Text = "❌ Error creando room: " .. tostring(createRes.StatusCode)
+            return
         end
     end
-
-    peer.OnDataChannel = function(channel)
-        dataChannel = channel
-        channel.OnMessage = function(raw)
-            local data = HttpService:JSONDecode(raw)
-            if data.type == "message" then
-                addMessage("[Otro]: " .. data.payload)
-            elseif data.type == "execute" then
-                pcall(function()
-                    loadstring(data.payload)()
-                end)
-            end
-        end
-        statusLabel.Text = "¡CONECTADOS DIRECTO! 🔥"
-        statusLabel.TextColor3 = Color3.new(0, 1, 0)
-    end
-
-    dataChannel = peer:CreateDataChannel("divine", {reliable = true})
-
-    peer:CreateOffer(function(offer)
-        peer:SetLocalDescription(offer)
-        sendSignal({type = "offer", sdp = offer.sdp, sender = player.Name})
-    end)
-
-    RunService.Heartbeat:Connect(function()
-        if tick() % 3 < 0.1 then
-            pollSignal()
-        end
-    end)
-end
-
-connectButton.MouseButton1Click:Connect(connectAutomatic)
-
--- Enviar funciones
-local function send(type, payload)
-    if dataChannel and dataChannel.readyState == "open" then
-        dataChannel:Send(HttpService:JSONEncode({type = type, payload = payload}))
-    end
-end
-
-execBtn.MouseButton1Click:Connect(function()
-    send("execute", codeBox.Text)
+    connected = true
+    StatusLabel.Text = "✅ Conectado a '" .. channel .. "'"
+    StatusLabel.TextColor3 = Color3.new(0,1,0)
+    startPolling()
+    updateChat("¡Conectado!")
 end)
 
-clearBtn.MouseButton1Click:Connect(function()
-    codeBox.Text = ""
-end)
-
-sendBtn.MouseButton1Click:Connect(function()
-    if msgInput.Text ~= "" then
-        send("message", msgInput.Text)
-        addMessage("[Yo]: " .. msgInput.Text)
-        msgInput.Text = ""
+SendBtn.MouseButton1Click:Connect(function()
+    local msg = InputBox.Text
+    if msg ~= "" then
+        sendMessage(msg, false)
+        InputBox.Text = ""
     end
 end)
 
-function addMessage(text)
-    table.insert(messages, text)
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 0, 30)
-    lbl.Text = text
-    lbl.TextColor3 = Color3.new(1,1,1)
-    lbl.BackgroundTransparency = 1
-    lbl.TextSize = 16
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Parent = chatScroll
-    chatScroll.CanvasSize = UDim2.new(0,0,0,#messages*32)
+InputBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then SendBtn.MouseButton1Click:Fire() end
+end)
+
+ExecBtn.MouseButton1Click:Connect(function()
+    local code = CodeBox.Text
+    if code ~= "" then
+        sendMessage(code, true)
+        CodeBox.Text = ""
+    end
+end)
+
+AutoExecBtn.MouseButton1Click:Connect(function()
+    autoExec = not autoExec
+    AutoExecBtn.Text = autoExec and "AutoExec: ON 🔥" or "AutoExec: OFF ⚠️"
+    AutoExecBtn.BackgroundColor3 = autoExec and Color3.fromRGB(0,170,0) or Color3.fromRGB(200,50,50)
+end)
+
+-- Corners menores
+for _, obj in pairs({InputBox, CodeBox, NameInput, ChannelInput, SendBtn, ExecBtn, ConnectBtn, AutoExecBtn}) do
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = obj
 end
 
-print("=== DIVINE UI AUTO CARGADA! 🔥 Letras más pequeñas y todo separado ===")
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0,170,255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(100,0,255))
+}
+gradient.Rotation = 45
+gradient.Parent = ConnectBtn
+
+print("🟢 Script cargado CON DRAG + TOUCH! 😈 Arrastra el título con mouse/dedo.")
+print("Ej: Envía '//EXEC game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0,100,0)' para teletransportar al otro.")
