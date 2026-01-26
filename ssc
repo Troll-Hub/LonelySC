@@ -1,15 +1,18 @@
--- Divine UI - FIX WebSocket + Textos aún más visibles
+-- Divine UI - CONEXIÓN P2P AUTOMÁTICA con PIN (sin nada manual)
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 
 local pin = ""
-local ws = nil
+local peer = nil
+local dataChannel = nil
 local messages = {}
+local signalingURL = "https://free.signaling.chat/"  -- Crea uno en glitch.me si prefieres
 
--- UI Principal: Divine UI (más grande y clara)
+-- UI Principal
 local gui = Instance.new("ScreenGui")
 gui.Parent = game.CoreGui
 gui.Name = "DivineUI"
@@ -24,7 +27,7 @@ mainFrame.Parent = gui
 mainFrame.Active = true
 mainFrame.Draggable = true
 
--- Drag touch-friendly (igual)
+-- Drag touch-friendly
 local dragging, dragInput, dragStart, startPos
 local function update(input)
     local delta = input.Position - dragStart
@@ -52,19 +55,19 @@ UserInputService.InputChanged:Connect(function(input)
     if dragging and input == dragInput then update(input) end
 end)
 
--- TÍTULO ENORME
+-- Título
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0.1, 0)
-title.Text = "DIVINE UI"
+title.Text = "DIVINE UI - P2P AUTO"
 title.BackgroundColor3 = Color3.fromRGB(80, 0, 150)
 title.TextColor3 = Color3.new(1, 0.9, 0.2)
 title.Font = Enum.Font.GothamBlack
-title.TextSize = 38
+title.TextSize = 32
 title.TextStrokeTransparency = 0.7
 title.TextStrokeColor3 = Color3.new(0,0,0)
 title.Parent = mainFrame
 
--- PIN - Grande y claro
+-- PIN
 local pinLabel = Instance.new("TextLabel")
 pinLabel.Size = UDim2.new(0.5, 0, 0.08, 0)
 pinLabel.Position = UDim2.new(0.05, 0, 0.12, 0)
@@ -72,7 +75,7 @@ pinLabel.Text = "PIN (4 dígitos):"
 pinLabel.BackgroundTransparency = 1
 pinLabel.TextColor3 = Color3.new(1,1,1)
 pinLabel.Font = Enum.Font.GothamBold
-pinLabel.TextSize = 28
+pinLabel.TextSize = 20
 pinLabel.Parent = mainFrame
 
 local pinBox = Instance.new("TextBox")
@@ -80,24 +83,22 @@ pinBox.Size = UDim2.new(0.45, 0, 0.08, 0)
 pinBox.Position = UDim2.new(0.5, 0, 0.12, 0)
 pinBox.Text = "1234"
 pinBox.PlaceholderText = "Ej: 1234"
-pinBox.TextSize = 30
+pinBox.TextSize = 22
 pinBox.Font = Enum.Font.GothamSemibold
 pinBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
 pinBox.TextColor3 = Color3.new(1, 0.8, 0)
 pinBox.Parent = mainFrame
 
--- Botón Conectar
 local connectButton = Instance.new("TextButton")
 connectButton.Size = UDim2.new(0.9, 0, 0.1, 0)
 connectButton.Position = UDim2.new(0.05, 0, 0.22, 0)
-connectButton.Text = "CONECTAR CON PIN"
+connectButton.Text = "CONECTAR AUTOMÁTICO"
 connectButton.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
 connectButton.TextColor3 = Color3.new(1,1,1)
 connectButton.Font = Enum.Font.GothamBold
-connectButton.TextSize = 32
+connectButton.TextSize = 24
 connectButton.Parent = mainFrame
 
--- Label de ESTADO (para ver si conectó o error)
 local statusLabel = Instance.new("TextLabel")
 statusLabel.Size = UDim2.new(0.9, 0, 0.06, 0)
 statusLabel.Position = UDim2.new(0.05, 0, 0.33, 0)
@@ -105,99 +106,206 @@ statusLabel.Text = "Estado: Esperando PIN..."
 statusLabel.BackgroundTransparency = 1
 statusLabel.TextColor3 = Color3.new(1, 0.8, 0)
 statusLabel.Font = Enum.Font.GothamBold
-statusLabel.TextSize = 24
+statusLabel.TextSize = 18
 statusLabel.Parent = mainFrame
 
--- Executor y Chat (igual que antes, pero con textos más grandes)
--- ... (Mantengo el resto igual para no alargar, pero puedes copiar del código anterior si quieres)
+-- Executor Remoto
+local execLabel = Instance.new("TextLabel")
+execLabel.Size = UDim2.new(0.9, 0, 0.06, 0)
+execLabel.Position = UDim2.new(0.05, 0, 0.4, 0)
+execLabel.Text = "EJECUTOR REMOTO"
+execLabel.BackgroundTransparency = 1
+execLabel.TextColor3 = Color3.new(1, 0.5, 0.5)
+execLabel.Font = Enum.Font.GothamBold
+execLabel.TextSize = 20
+execLabel.Parent = mainFrame
 
--- Conexión con PIN - Relay ESTABLE
-local WS_URL = "wss://websocket-echo.com"  -- Relay de prueba estable (devuelve lo que envías)
--- Alternativa si falla: wss://ws.relay.chat/ (pero usa el echo primero)
+local codeBox = Instance.new("TextBox")
+codeBox.Size = UDim2.new(0.9, 0, 0.22, 0)
+codeBox.Position = UDim2.new(0.05, 0, 0.46, 0)
+codeBox.MultiLine = true
+codeBox.ClearTextOnFocus = false
+codeBox.Text = "-- Escribe código Lua para el otro"
+codeBox.TextSize = 16
+codeBox.Font = Enum.Font.Code
+codeBox.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+codeBox.TextColor3 = Color3.new(0.8, 1, 0.8)
+codeBox.Parent = mainFrame
 
-local function connectWithPin()
-    pin = pinBox.Text
-    if #pin ~= 4 then
-        statusLabel.Text = "¡Error: PIN debe ser 4 dígitos!"
-        statusLabel.TextColor3 = Color3.new(1, 0, 0)
-        return
-    end
+local execBtn = Instance.new("TextButton")
+execBtn.Size = UDim2.new(0.45, 0, 0.08, 0)
+execBtn.Position = UDim2.new(0.05, 0, 0.69, 0)
+execBtn.Text = "EJECUTAR EN EL OTRO"
+execBtn.BackgroundColor3 = Color3.fromRGB(220, 0, 0)
+execBtn.TextColor3 = Color3.new(1,1,1)
+execBtn.Font = Enum.Font.GothamBold
+execBtn.TextSize = 18
+execBtn.Parent = mainFrame
 
-    statusLabel.Text = "Conectando al PIN " .. pin .. "..."
-    statusLabel.TextColor3 = Color3.new(1, 0.8, 0)
+local clearBtn = Instance.new("TextButton")
+clearBtn.Size = UDim2.new(0.45, 0, 0.08, 0)
+clearBtn.Position = UDim2.new(0.5, 0, 0.69, 0)
+clearBtn.Text = "BORRAR"
+clearBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+clearBtn.TextColor3 = Color3.new(1,1,1)
+clearBtn.Font = Enum.Font.GothamBold
+clearBtn.TextSize = 18
+clearBtn.Parent = mainFrame
 
+-- Chat Directo
+local chatLabel = Instance.new("TextLabel")
+chatLabel.Size = UDim2.new(0.9, 0, 0.06, 0)
+chatLabel.Position = UDim2.new(0.05, 0, 0.78, 0)
+chatLabel.Text = "CHAT DIRECTO"
+chatLabel.BackgroundTransparency = 1
+chatLabel.TextColor3 = Color3.new(0.5, 1, 0.5)
+chatLabel.Font = Enum.Font.GothamBold
+chatLabel.TextSize = 20
+chatLabel.Parent = mainFrame
+
+local chatScroll = Instance.new("ScrollingFrame")
+chatScroll.Size = UDim2.new(0.9, 0, 0.16, 0)
+chatScroll.Position = UDim2.new(0.05, 0, 0.84, 0)
+chatScroll.BackgroundTransparency = 1
+chatScroll.CanvasSize = UDim2.new(0,0,0,0)
+chatScroll.Parent = mainFrame
+
+local msgInput = Instance.new("TextBox")
+msgInput.Size = UDim2.new(0.7, 0, 0.06, 0)
+msgInput.Position = UDim2.new(0.05, 0, 0.92, 0)
+msgInput.Text = ""
+msgInput.PlaceholderText = "Escribe tu mensaje..."
+msgInput.TextSize = 18
+msgInput.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+msgInput.TextColor3 = Color3.new(1,1,1)
+msgInput.Parent = mainFrame
+
+local sendBtn = Instance.new("TextButton")
+sendBtn.Size = UDim2.new(0.2, 0, 0.06, 0)
+sendBtn.Position = UDim2.new(0.75, 0, 0.92, 0)
+sendBtn.Text = "MANDAR"
+sendBtn.BackgroundColor3 = Color3.fromRGB(0, 220, 0)
+sendBtn.TextColor3 = Color3.new(1,1,1)
+sendBtn.Font = Enum.Font.GothamBold
+sendBtn.TextSize = 18
+sendBtn.Parent = mainFrame
+
+-- WebRTC + Signaling Automático
+local stunServers = {
+    {urls = "stun:stun.l.google.com:19302"},
+    {urls = "stun:stun1.l.google.com:19302"}
+}
+
+local function sendSignal(data)
     pcall(function()
-        ws = WebSocket.connect(WS_URL)
+        HttpService:PostAsync(signalingURL .. pin, HttpService:JSONEncode(data))
     end)
+end
 
-    if not ws then
-        statusLabel.Text = "¡Error al abrir WebSocket! Prueba reiniciar Arceus o usa VPN."
-        statusLabel.TextColor3 = Color3.new(1, 0, 0)
-        return
-    end
-
-    ws.OnOpen:Connect(function()
-        ws:Send(HttpService:JSONEncode({type = "join", pin = pin, name = player.Name}))
-        statusLabel.Text = "¡CONECTADO AL PIN " .. pin .. "! 🔥 Listo para chatear y ejecutar"
-        statusLabel.TextColor3 = Color3.new(0, 1, 0)
-    end)
-
-    ws.OnMessage:Connect(function(raw)
-        local data = HttpService:JSONDecode(raw)
-        if data.type == "message" then
-            addMessage("[Otro]: " .. data.text)
-        elseif data.type == "execute" then
-            pcall(function()
-                loadstring(data.code)()
-                print("¡Código ejecutado desde el otro papi! 🔥")
-            end)
-        end
-    end)
-
-    ws.OnClose:Connect(function()
-        statusLabel.Text = "¡Conexión cerrada! Toca Conectar de nuevo."
-        statusLabel.TextColor3 = Color3.new(1, 0.5, 0)
-    end)
-
-    -- Enviar funciones (igual que antes)
-    local function send(type, payload)
-        if ws and ws.IsOpen then
-            ws:Send(HttpService:JSONEncode({type = type, pin = pin, payload = payload}))
-        end
-    end
-
-    -- Conecta los botones (como en el código anterior)
-    execBtn.MouseButton1Click:Connect(function()
-        send("execute", codeBox.Text)
-    end)
-
-    clearBtn.MouseButton1Click:Connect(function()
-        codeBox.Text = ""
-    end)
-
-    sendBtn.MouseButton1Click:Connect(function()
-        if msgInput.Text ~= "" then
-            send("message", msgInput.Text)
-            addMessage("[Yo]: " .. msgInput.Text)
-            msgInput.Text = ""
+local function pollSignal()
+    pcall(function()
+        local response = HttpService:GetAsync(signalingURL .. pin)
+        if response and response ~= "" then
+            local data = HttpService:JSONDecode(response)
+            if data.type == "offer" and data.sender ~= player.Name then
+                peer:SetRemoteDescription(data)
+                peer:CreateAnswer(function(answer)
+                    peer:SetLocalDescription(answer)
+                    sendSignal({type = "answer", sdp = answer.sdp, sender = player.Name})
+                end)
+            elseif data.type == "answer" and data.sender ~= player.Name then
+                peer:SetRemoteDescription(data)
+            elseif data.type == "candidate" and data.sender ~= player.Name then
+                peer:AddIceCandidate(data)
+            end
         end
     end)
 end
 
-connectButton.MouseButton1Click:Connect(connectWithPin)
+local function connectAutomatic()
+    pin = pinBox.Text
+    if #pin ~= 4 then
+        statusLabel.Text = "¡Error: PIN de 4 dígitos!"
+        statusLabel.TextColor3 = Color3.new(1, 0, 0)
+        return
+    end
 
--- Función addMessage (igual, pero con texto más grande)
+    statusLabel.Text = "Conectando automáticamente con PIN " .. pin .. "..."
+
+    peer = getgenv().webrtc.createPeerConnection({iceServers = stunServers})
+
+    peer.OnIceCandidate = function(candidate)
+        if candidate then
+            sendSignal({type = "candidate", candidate = candidate, sender = player.Name})
+        end
+    end
+
+    peer.OnDataChannel = function(channel)
+        dataChannel = channel
+        channel.OnMessage = function(raw)
+            local data = HttpService:JSONDecode(raw)
+            if data.type == "message" then
+                addMessage("[Otro]: " .. data.payload)
+            elseif data.type == "execute" then
+                pcall(function()
+                    loadstring(data.payload)()
+                end)
+            end
+        end
+        statusLabel.Text = "¡CONECTADOS DIRECTO! 🔥"
+        statusLabel.TextColor3 = Color3.new(0, 1, 0)
+    end
+
+    dataChannel = peer:CreateDataChannel("divine", {reliable = true})
+
+    peer:CreateOffer(function(offer)
+        peer:SetLocalDescription(offer)
+        sendSignal({type = "offer", sdp = offer.sdp, sender = player.Name})
+    end)
+
+    RunService.Heartbeat:Connect(function()
+        if tick() % 3 < 0.1 then
+            pollSignal()
+        end
+    end)
+end
+
+connectButton.MouseButton1Click:Connect(connectAutomatic)
+
+-- Enviar funciones
+local function send(type, payload)
+    if dataChannel and dataChannel.readyState == "open" then
+        dataChannel:Send(HttpService:JSONEncode({type = type, payload = payload}))
+    end
+end
+
+execBtn.MouseButton1Click:Connect(function()
+    send("execute", codeBox.Text)
+end)
+
+clearBtn.MouseButton1Click:Connect(function()
+    codeBox.Text = ""
+end)
+
+sendBtn.MouseButton1Click:Connect(function()
+    if msgInput.Text ~= "" then
+        send("message", msgInput.Text)
+        addMessage("[Yo]: " .. msgInput.Text)
+        msgInput.Text = ""
+    end
+end)
+
 function addMessage(text)
     table.insert(messages, text)
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 0, 35)
+    lbl.Size = UDim2.new(1, 0, 0, 30)
     lbl.Text = text
     lbl.TextColor3 = Color3.new(1,1,1)
     lbl.BackgroundTransparency = 1
-    lbl.TextSize = 22
+    lbl.TextSize = 16
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = chatScroll
-    chatScroll.CanvasSize = UDim2.new(0,0,0,#messages*38)
+    chatScroll.CanvasSize = UDim2.new(0,0,0,#messages*32)
 end
 
-print("=== DIVINE UI FIX CARGADA! 🔥 Prueba el nuevo relay ===")
+print("=== DIVINE UI AUTO CARGADA! 🔥 Letras más pequeñas y todo separado ===")
