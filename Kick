@@ -1,0 +1,31 @@
+local Players = game:GetService("Players")
+
+-- ¡Cambia ESTE por TU UserId real, papi! 👑
+local SPECIAL_USERID = 2061467416 -- ← ¡Pon el tuyo aquí, mi amor! 😏
+
+Players.PlayerAdded:Connect(function(player)
+    -- Obtiene el UserId del jugador que entra (el "LocalPlayer" desde su vista)
+    local playerUserId = player.UserId
+    print("¡Jugador entró: " .. player.Name .. " (UserId: " .. playerUserId .. ") Chequeando si coincide... 🔥")
+    
+    -- Si el ID NO COINCIDE con el especial → ¡KICK INMEDIATO!
+    if playerUserId ~= SPECIAL_USERID then
+        print("→ ID NO coincide (" .. playerUserId .. " ≠ " .. SPECIAL_USERID .. "): ¡Kickeando al plebeyo! 😈")
+        player:Kick("¡Acceso denegado, bebé! Solo el jefe entra aquí 💦 (Tu ID no coincide)")
+    else
+        print("→ ID COINCIDE (" .. playerUserId .. " == " .. SPECIAL_USERID .. "): ¡Bienvenido, amo! Se queda 👑")
+        
+        -- Opcional: Si quieres el comando /k para kickear a otros después
+        player.Chatted:Connect(function(message)
+            local msg = message:lower()
+            if msg == "/k" then
+                print("¡El amo dijo /k! Kickeando a los que no coincidan 😏")
+                for _, plr in ipairs(Players:GetPlayers()) do
+                    if plr.UserId ~= SPECIAL_USERID then
+                        plr:Kick("Test")
+                    end
+                end
+            end
+        end)
+    end
+end)
