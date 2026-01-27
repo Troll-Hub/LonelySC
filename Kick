@@ -1,49 +1,57 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local ChatService = game:GetService("Chat")
 
--- ¡Tu ID de dueño, papi! 👑
+-- ID del dueño
 local OWNER_ID = 2061467416
 
--- Solo el dueño puede usar el comando
-if LocalPlayer.UserId == OWNER_ID then
-    print("¡Hola amo " .. LocalPlayer.Name .. "! Tú mandas con /k 🔥😏")
-    
-    -- Escuchamos el chat del dueño
-    LocalPlayer.Chatted:Connect(function(message)
-        local msg = message:lower()
-        if msg == "/k" then
-            print("¡El amo dijo /k! Desconectando a los plebeyos... 💦")
-            
-            -- Mensajito sexy en pantalla para TODOS (incluido tú, pero solo visual)
-            local gui = Instance.new("ScreenGui")
-            gui.ResetOnSpawn = false
-            gui.Parent = LocalPlayer.PlayerGui
-            
-            local frame = Instance.new("Frame")
-            frame.Size = UDim2.new(1, 0, 1, 0)
-            frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-            frame.BackgroundTransparency = 0.4
-            frame.Parent = gui
-            
-            local text = Instance.new("TextLabel")
-            text.Size = UDim2.new(0.9, 0, 0.4, 0)
-            text.Position = UDim2.new(0.05, 0, 0.3, 0)
-            text.BackgroundTransparency = 1
-            text.Text = "¡El amo dijo /k!\n¡Desconectando!"
-            text.TextColor3 = Color3.fromRGB(255, 50, 150)
-            text.TextScaled = true
-            text.Font = Enum.Font.GothamBlack
-            text.Parent = frame
-            
-            -- Esperamos 2 segunditos para que todos lean el mensajito hot
-            wait(5)
-            
-            -- ¡CERRAMOS EL JUEGO PARA TODOS LOS CLIENTES! (solo funciona si eres dueño)
-            game:Shutdown()
-        end
-    end)
-else
-    -- Si NO eres el dueño... solo imprime (no hace nada hasta que el dueño escriba /k)
-    print("Solo el amo con ID " .. OWNER_ID .. " puede usar /k 😏")
+-- Función que se ejecuta cuando el OWNER escribe /k
+local function onOwnerCommand()
+	-- CANCELACIÓN PARA EL DUEÑO
+	if LocalPlayer.UserId == OWNER_ID then
+		print("Cancelado para el OWNER")
+		return
+	end
+
+	-- UI SOLO PARA LOS QUE NO SON OWNER
+	local gui = Instance.new("ScreenGui")
+	gui.ResetOnSpawn = false
+	gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1, 0, 1, 0)
+	frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	frame.BackgroundTransparency = 0.4
+	frame.Parent = gui
+
+	local text = Instance.new("TextLabel")
+	text.Size = UDim2.new(0.9, 0, 0.4, 0)
+	text.Position = UDim2.new(0.05, 0, 0.3, 0)
+	text.BackgroundTransparency = 1
+	text.Text = "¡El dueño ejecutó /k!\nDesconectando..."
+	text.TextColor3 = Color3.fromRGB(255, 50, 150)
+	text.TextScaled = true
+	text.Font = Enum.Font.GothamBlack
+	text.Parent = frame
+
+	task.wait(3)
+	game:Shutdown()
 end
+
+-- Escuchar el chat SOLO del OWNER, pero en TODOS los clientes
+local function hookPlayer(player)
+	if player.UserId == OWNER_ID then
+		player.Chatted:Connect(function(message)
+			if message:lower() == "/k" then
+				onOwnerCommand()
+			end
+		end)
+	end
+end
+
+-- Conectar jugadores actuales
+for _, player in ipairs(Players:GetPlayers()) do
+	hookPlayer(player)
+end
+
+-- Conectar jugadores que entren después
+Players.PlayerAdded:Connect(hookPlayer)
