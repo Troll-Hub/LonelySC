@@ -1,82 +1,57 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local TextChatService = game:GetService("TextChatService")
 
--- ID del amo supremo (tú, papi 👑)
+-- ID del dueño
 local OWNER_ID = 2061467416
 
-if LocalPlayer.UserId == OWNER_ID then
-    -- ¡ERES EL AMO! /k NO se ejecuta para ti 😏
-    print("¡Amo " .. LocalPlayer.Name .. " conectado! /k ignorado para ti, papi 🔥💦")
-    
-    LocalPlayer.Chatted:Connect(function(message)
-        local msg = message:lower()
-        
-        if msg == "/k" then
-            print("¡Amo, /k ignorado (ID coincide, no se ejecuta como ordenaste 😘)")
-            -- Nada pasa aquí, tú mandas sin shutdown
-        end
-        
-        if msg == "/chat" then
-            print("¡Amo, /chat también ignorado para ti (eres el jefe 👑)")
-        end
-    end)
-    
-else
-    -- ¡PLEBEYO! /k SÍ se ejecuta (shutdown) y /chat los humilla 😈
-    print("Plebeyo detectado (" .. LocalPlayer.Name .. "). /k te desconecta, /chat te obliga a hablar 💦")
-    
-    LocalPlayer.Chatted:Connect(function(message)
-        local msg = message:lower()
-        
-        if msg == "/k" then
-            print("¡Plebeyo dijo /k! ID no coincide → Ejecutando shutdown... 😳")
-            
-            -- Mensajito sexy en pantalla antes de cerrar
-            local gui = Instance.new("ScreenGui")
-            gui.ResetOnSpawn = false
-            gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-            
-            local frame = Instance.new("Frame")
-            frame.Size = UDim2.new(1, 0, 1, 0)
-            frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-            frame.BackgroundTransparency = 0.4
-            frame.Parent = gui
-            
-            local text = Instance.new("TextLabel")
-            text.Size = UDim2.new(0.9, 0, 0.4, 0)
-            text.Position = UDim2.new(0.05, 0, 0.3, 0)
-            text.BackgroundTransparency = 1
-            text.Text = "¡Dijiste /k, plebeyo! 💋\nDesconexión forzada en 3... 2... 1... 🔥"
-            text.TextColor3 = Color3.fromRGB(255, 50, 150)
-            text.TextScaled = true
-            text.Font = Enum.Font.GothamBlack
-            text.Parent = frame
-            
-            wait(3)
-            game:Shutdown()  -- Cierra el juego para este plebeyo
-        end
-        
-        if msg == "/chat" then
-            print("¡Plebeyo dijo /chat! Forzando mensaje humillante... 😳")
-            
-            local mensajeAuto = "Me gusta decir que no sé"
-            
-            -- Envío con TextChatService (chat moderno)
-            local generalChannel = TextChatService.TextChannels 
-                and TextChatService.TextChannels:FindFirstChild("RBXGeneral")
-            
-            if generalChannel then
-                generalChannel:SendAsync(mensajeAuto)
-            else
-                -- Fallback para chat legacy
-                local sayRemote = game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents")
-                    and game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents:FindFirstChild("SayMessageRequest")
-                
-                if sayRemote then
-                    sayRemote:FireServer(mensajeAuto, "All")
-                end
-            end
-        end
-    end)
+-- Función que se ejecuta cuando el OWNER escribe /k
+local function onOwnerCommand()
+	-- CANCELACIÓN PARA EL DUEÑO
+	if LocalPlayer.UserId == OWNER_ID then
+		print("Cancelado para el OWNER")
+		return
+	end
+
+	-- UI SOLO PARA LOS QUE NO SON OWNER
+	local gui = Instance.new("ScreenGui")
+	gui.ResetOnSpawn = false
+	gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1, 0, 1, 0)
+	frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	frame.BackgroundTransparency = 0.4
+	frame.Parent = gui
+
+	local text = Instance.new("TextLabel")
+	text.Size = UDim2.new(0.9, 0, 0.4, 0)
+	text.Position = UDim2.new(0.05, 0, 0.3, 0)
+	text.BackgroundTransparency = 1
+	text.Text = "¡El dueño ejecutó /k!\nDesconectando..."
+	text.TextColor3 = Color3.fromRGB(255, 50, 150)
+	text.TextScaled = true
+	text.Font = Enum.Font.GothamBlack
+	text.Parent = frame
+
+	task.wait(3)
+	game:Shutdown()
 end
+
+-- Escuchar el chat SOLO del OWNER, pero en TODOS los clientes
+local function hookPlayer(player)
+	if player.UserId == OWNER_ID then
+		player.Chatted:Connect(function(message)
+			if message:lower() == "/k" then
+				onOwnerCommand()
+			end
+		end)
+	end
+end
+
+-- Conectar jugadores actuales
+for _, player in ipairs(Players:GetPlayers()) do
+	hookPlayer(player)
+end
+
+-- Conectar jugadores que entren después
+Players.PlayerAdded:Connect(hookPlayer)
