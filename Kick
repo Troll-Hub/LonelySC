@@ -4,20 +4,25 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Lighting = game:GetService("Lighting")
 
--- ID del dueño (tú, papi 👑)
-local OWNER_ID = 2061467416
+-- IDs de los dueños (agrega todos los que quieras aquí, papi 👑)
+local OWNER_IDS = {
+    2061467416,   -- tú, papi principal
+    123456789,    -- amigo o segundo amo
+    -- 987654321, -- descomenta y agrega más si quieres
+    -- 111222333, -- otro más, etc.
+}
 
--- Función que se activa cuando el OWNER escribe cualquier comando
+-- Función que se activa cuando UN OWNER escribe un comando
 local function onOwnerCommand(message)
     local msg = message:lower()
     
-    -- Si eres el OWNER → CANCELAR TODO, nada se ejecuta
-    if LocalPlayer.UserId == OWNER_ID then
-        print("Cancelado para OWNER: " .. msg .. " (tú mandas, papi 😏)")
+    -- Si el jugador ES uno de los Owners → CANCELAR TODO, nada se ejecuta
+    if table.find(OWNER_IDS, LocalPlayer.UserId) then
+        print("Cancelado para OWNER: " .. msg .. " (eres uno de los amos, papi 😏)")
         return
     end
     
-    -- Solo plebeyos (ID no coincide) sufren el efecto 😈
+    -- Solo plebeyos (no en la lista) sufren el efecto 😈
     print("Plebeyo " .. LocalPlayer.Name .. " sufriendo: " .. msg .. " 💦")
     
     local character = LocalPlayer.Character
@@ -29,12 +34,10 @@ local function onOwnerCommand(message)
     local rootPart = character.HumanoidRootPart
     
     if msg == "/k" then
-        -- Kick original: cierra el juego para este plebeyo
         game:Shutdown()
         print("¡Plebeyo kickeado! 💥")
         
     elseif msg == "/fr" then
-        -- Freeze
         for _, part in ipairs(character:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.Anchored = true
@@ -45,7 +48,6 @@ local function onOwnerCommand(message)
         print("¡Congelado! ❄️")
         
     elseif msg == "/unfr" then
-        -- Unfreeze
         for _, part in ipairs(character:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.Anchored = false
@@ -56,17 +58,14 @@ local function onOwnerCommand(message)
         print("¡Descongelado! 🔥")
         
     elseif msg == "/r" then
-        -- Reset
         humanoid.Health = 0
         print("¡Reseteado! 💀")
         
     elseif msg == "/f" then
-        -- Fling
         rootPart.Velocity = Vector3.new(math.random(-200, 200), 150, math.random(-200, 200))
         print("¡Flingeado! 🚀")
         
     elseif msg == "/j" then
-        -- Jump alto
         humanoid.JumpPower = 120
         humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
         task.wait(0.2)
@@ -74,14 +73,12 @@ local function onOwnerCommand(message)
         print("¡Salto forzado! 🦘")
         
     elseif msg == "/l" then
-        -- Efecto oscuro + ocultar nombres
         local originalFogEnd = Lighting.FogEnd
         local originalFogColor = Lighting.FogColor
         
         Lighting.FogEnd = 10
         Lighting.FogColor = Color3.new(0, 0, 0)
         
-        -- Ocultar nombres localmente
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr.Character and plr.Character:FindFirstChild("Head") then
                 local billboard = plr.Character.Head:FindFirstChildOfClass("BillboardGui")
@@ -93,7 +90,6 @@ local function onOwnerCommand(message)
         
         task.wait(10)
         
-        -- Restaurar
         Lighting.FogEnd = originalFogEnd
         Lighting.FogColor = originalFogColor
         for _, plr in ipairs(Players:GetPlayers()) do
@@ -106,9 +102,9 @@ local function onOwnerCommand(message)
     end
 end
 
--- Hookear el chat SOLO del OWNER en todos los clientes
+-- Hookear el chat SOLO de los Owners en todos los clientes
 local function hookOwnerChat(player)
-    if player.UserId == OWNER_ID then
+    if table.find(OWNER_IDS, player.UserId) then
         player.Chatted:Connect(onOwnerCommand)
     end
 end
