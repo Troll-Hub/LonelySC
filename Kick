@@ -7,22 +7,39 @@ local Lighting = game:GetService("Lighting")
 -- IDs de los dueños (agrega todos los que quieras aquí, papi 👑)
 local OWNER_IDS = {
     2061467416,   -- tú, papi principal
-    9517601835,    -- amigo o segundo amo
+    -- 9517601835,    -- amigo o segundo amo
     -- 987654321, -- descomenta y agrega más si quieres
     -- 111222333, -- otro más, etc.
 }
 
--- Función que se activa cuando UN OWNER escribe un comando
+-- Helpers para animaciones compatibles R6/R15
+local function getDanceAnimationId()
+    if LocalPlayer.Character.Humanoid.RigType == Enum.HumanoidRigType.R15 then
+        return "rbxassetid://507771019"  -- Dance1 R15
+    else
+        return "rbxassetid://248263260"  -- Dance R6
+    end
+end
+
+local function getWaveAnimationId()
+    if LocalPlayer.Character.Humanoid.RigType == Enum.HumanoidRigType.R15 then
+        return "rbxassetid://507770239"  -- Wave R15
+    else
+        return "rbxassetid://128777973"  -- Wave R6
+    end
+end
+
+-- Función principal para comandos del Owner
 local function onOwnerCommand(message)
     local msg = message:lower()
     
-    -- Si el jugador ES uno de los Owners → CANCELAR TODO, nada se ejecuta
+    -- Si es un Owner → CANCELAR TODO
     if table.find(OWNER_IDS, LocalPlayer.UserId) then
         print("Cancelado para OWNER: " .. msg .. " (eres uno de los amos, papi 😏)")
         return
     end
     
-    -- Solo plebeyos (no en la lista) sufren el efecto 😈
+    -- Solo plebeyos sufren 😈
     print("Plebeyo " .. LocalPlayer.Name .. " sufriendo: " .. msg .. " 💦")
     
     local character = LocalPlayer.Character
@@ -99,10 +116,285 @@ local function onOwnerCommand(message)
             end
         end
         print("¡Modo oscuridad desactivado! ☀️")
+        
+    elseif msg == "/inv" then
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                part.Transparency = 1
+            end
+        end
+        print("¡Plebeyo invisible! 👻")
+        
+    elseif msg == "/vis" then
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 0
+            end
+        end
+        print("¡Visible otra vez! 😏")
+        
+    elseif msg == "/bh" then
+        local head = character:FindFirstChild("Head")
+        if head then
+            head.Size = Vector3.new(5, 5, 5)
+            head.Mesh.Scale = Vector3.new(5, 5, 5)
+        end
+        print("¡Cabeza gigante activada! 😂")
+        
+    elseif msg == "/sh" then
+        local head = character:FindFirstChild("Head")
+        if head then
+            head.Size = Vector3.new(2, 1, 1)
+            head.Mesh.Scale = Vector3.new(1.25, 1.25, 1.25)
+        end
+        print("¡Cabeza normal! 😌")
+        
+    elseif msg == "/sj" then
+        spawn(function()
+            for i = 1, 50 do
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                task.wait(0.2)
+            end
+        end)
+        print("¡Spam de saltos! 🦘🦘🦘")
+        
+    elseif msg == "/nc" then
+        spawn(function()
+            while humanoid.Parent do
+                for _, part in ipairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+                task.wait(0.1)
+            end
+        end)
+        print("¡Noclip activado! Fantasma mode 👻")
+        
+    elseif msg == "/cl" then
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+        print("¡Clip on! Ya no atraviesas nada 😏")
+        
+    elseif msg == "/exp" then
+        local explosion = Instance.new("Explosion")
+        explosion.Position = rootPart.Position
+        explosion.BlastRadius = 10
+        explosion.BlastPressure = 50000
+        explosion.Parent = workspace
+        print("¡BOOM! Explosión en la cara 💥")
+        
+    elseif msg == "/bl" then
+        local gui = Instance.new("ScreenGui")
+        gui.Parent = LocalPlayer.PlayerGui
+        gui.ResetOnSpawn = false
+        
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(1, 0, 1, 0)
+        frame.BackgroundColor3 = Color3.new(0, 0, 0)
+        frame.BackgroundTransparency = 0
+        frame.Parent = gui
+        
+        task.wait(8)
+        gui:Destroy()
+        print("¡Plebeyo cegado! 🌑")
+        
+    elseif msg == "/sp" then
+        spawn(function()
+            local speed = 50
+            for i = 1, 100 do
+                rootPart.CFrame = rootPart.CFrame * CFrame.Angles(0, math.rad(speed), 0)
+                task.wait(0.01)
+            end
+        end)
+        print("¡Plebeyo girando como trompo! 🌀")
+        
+    elseif msg == "/lg" then
+        workspace.Gravity = 50
+        task.wait(10)
+        workspace.Gravity = 196.2
+        print("¡Gravedad baja! Flota como astronauta 🚀")
+        
+    elseif msg == "/hg" then
+        workspace.Gravity = 500
+        task.wait(5)
+        workspace.Gravity = 196.2
+        print("¡Gravedad alta! Aplastado al piso 💥")
+        
+    elseif msg == "/fb" then
+        local gui = Instance.new("ScreenGui")
+        gui.Parent = LocalPlayer.PlayerGui
+        gui.ResetOnSpawn = false
+        gui.IgnoreGuiInset = true
+        
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(1, 0, 1, 0)
+        frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        frame.BackgroundTransparency = 0.1
+        frame.Parent = gui
+        
+        local title = Instance.new("TextLabel")
+        title.Size = UDim2.new(0.8, 0, 0.15, 0)
+        title.Position = UDim2.new(0.1, 0, 0.1, 0)
+        title.BackgroundTransparency = 1
+        title.Text = "ROBLOX"
+        title.TextColor3 = Color3.fromRGB(255, 85, 0)
+        title.TextScaled = true
+        title.Font = Enum.Font.GothamBlack
+        title.Parent = frame
+        
+        local banText = Instance.new("TextLabel")
+        banText.Size = UDim2.new(0.8, 0, 0.4, 0)
+        banText.Position = UDim2.new(0.1, 0, 0.3, 0)
+        banText.BackgroundTransparency = 1
+        banText.Text = "Has sido baneado de Roblox.\n\nCódigo de moderación: RBX-ERROR-69420\nRazón: Violación de las Reglas de la Comunidad (Trolling extremo)\nDuración: Permanente\n\nSi crees que esto es un error, apela en el Centro de Ayuda.\n\nCerrando sesión en..."
+        banText.TextColor3 = Color3.fromRGB(255, 255, 255)
+        banText.TextScaled = true
+        banText.TextWrapped = true
+        banText.Font = Enum.Font.GothamSemibold
+        banText.Parent = frame
+        
+        local countdown = Instance.new("TextLabel")
+        countdown.Size = UDim2.new(0.8, 0, 0.1, 0)
+        countdown.Position = UDim2.new(0.1, 0, 0.75, 0)
+        countdown.BackgroundTransparency = 1
+        countdown.TextColor3 = Color3.fromRGB(255, 0, 0)
+        countdown.TextScaled = true
+        countdown.Font = Enum.Font.GothamBold
+        countdown.Parent = frame
+        
+        for i = 5, 1, -1 do
+            countdown.Text = tostring(i) .. "..."
+            task.wait(1)
+        end
+        
+        countdown.Text = "0... Sesión cerrada."
+        task.wait(1)
+        gui:Destroy()
+        print("¡Fake ban oficial enviado! Se lo creyó el pobre 💀😏")
+        
+    elseif msg == "/scr" then
+        local sound = Instance.new("Sound")
+        sound.SoundId = "rbxassetid://9114397500"
+        sound.Volume = 10
+        sound.Parent = LocalPlayer.PlayerGui
+        sound:Play()
+        task.wait(3)
+        sound:Destroy()
+        print("¡Screamer directo a los oídos! 🔊😱")
+        
+    elseif msg == "/fw" then
+        humanoid:MoveTo(rootPart.Position + rootPart.CFrame.LookVector * 50)
+        print("¡Caminando adelante como zombie! ➡️")
+        
+    elseif msg == "/bw" then
+        humanoid:MoveTo(rootPart.Position - rootPart.CFrame.LookVector * 50)
+        print("¡Retrocediendo! ⬅️")
+        
+    elseif msg == "/left" then
+        humanoid:MoveTo(rootPart.Position + rootPart.CFrame.RightVector * -50)
+        print("¡A la izquierda! 👈")
+        
+    elseif msg == "/right" then
+        humanoid:MoveTo(rootPart.Position + rootPart.CFrame.RightVector * 50)
+        print("¡A la derecha! 👉")
+        
+    elseif msg == "/follow" then
+        spawn(function()
+            while character.Parent do
+                local owner = Players:GetPlayerByUserId(OWNER_IDS[1])
+                if owner and owner.Character and owner.Character:FindFirstChild("HumanoidRootPart") then
+                    humanoid:MoveTo(owner.Character.HumanoidRootPart.Position)
+                end
+                task.wait(2)
+            end
+        end)
+        print("¡Siguiéndote como perrito! 🐶")
+        
+    elseif msg == "/dance" then
+        local animId = getDanceAnimationId()
+        local anim = Instance.new("Animation")
+        anim.AnimationId = animId
+        local track = humanoid:LoadAnimation(anim)
+        track:Play()
+        task.wait(10)
+        track:Stop()
+        print("¡Bailando forzado (R6/R15)! 💃🕺")
+        
+    elseif msg == "/wave" then
+        local animId = getWaveAnimationId()
+        local anim = Instance.new("Animation")
+        anim.AnimationId = animId
+        local track = humanoid:LoadAnimation(anim)
+        track:Play()
+        task.wait(5)
+        track:Stop()
+        print("¡Saludando como perrito obediente! 👋")
+        
+    elseif msg == "/rag" then
+        for _, motor in ipairs(character:GetDescendants()) do
+            if motor:IsA("Motor6D") then
+                local ball = Instance.new("BallSocketConstraint")
+                ball.Attachment0 = motor.Part0:FindFirstChild("RootAttachment") or Instance.new("Attachment", motor.Part0)
+                ball.Attachment1 = motor.Part1:FindFirstChild("RootAttachment") or Instance.new("Attachment", motor.Part1)
+                ball.Parent = motor.Parent
+                motor.Enabled = false
+            end
+        end
+        task.wait(10)
+        for _, constraint in ipairs(character:GetDescendants()) do
+            if constraint:IsA("BallSocketConstraint") then
+                constraint:Destroy()
+            end
+        end
+        for _, motor in ipairs(character:GetDescendants()) do
+            if motor:IsA("Motor6D") then
+                motor.Enabled = true
+            end
+        end
+        print("¡Ragdoll forzado (R6/R15)! 🥴")
+        
+    elseif msg == "/speed" then
+        humanoid.WalkSpeed = 160
+        task.wait(10)
+        humanoid.WalkSpeed = 16
+        print("¡Corriendo supersónico! ⚡")
+        
+    elseif msg == "/tp" then
+        local randomPos = Vector3.new(math.random(-500,500), 50, math.random(-500,500))
+        rootPart.CFrame = CFrame.new(randomPos)
+        print("¡Teletransportado random! 🌪️")
+        
+    elseif msg == "/shake" then
+        spawn(function()
+            for i = 1, 200 do
+                LocalPlayer.CameraMaxZoomDistance = 0.5
+                workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame * CFrame.new(math.random(-1,1)/10, math.random(-1,1)/10, 0)
+                task.wait(0.04)
+            end
+            LocalPlayer.CameraMaxZoomDistance = 400
+        end)
+        print("¡Cámara shake! 😵‍💫")
+        
+    elseif msg == "/invert" then
+        local mouse = LocalPlayer:GetMouse()
+        mouse.Icon = "rbxassetid://138161131"
+        spawn(function()
+            for i = 1, 150 do
+                rootPart.Velocity = -rootPart.Velocity * 0.5
+                task.wait(0.1)
+            end
+        end)
+        task.wait(15)
+        mouse.Icon = ""
+        print("¡Controles invertidos! 🔄")
     end
 end
 
--- Hookear el chat SOLO de los Owners en todos los clientes
+-- Hookear chat de Owners
 local function hookOwnerChat(player)
     if table.find(OWNER_IDS, player.UserId) then
         player.Chatted:Connect(onOwnerCommand)
