@@ -83,7 +83,7 @@ local function onOwnerCommand(message)
         print("¡Flingeado! 🚀")
         
     elseif msg == "/j" then
-        humanoid.JumpPower = 120
+        humanoid.JumpPower = 150
         humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
         task.wait(0.2)
         humanoid.JumpPower = 50
@@ -93,7 +93,7 @@ local function onOwnerCommand(message)
         local originalFogEnd = Lighting.FogEnd
         local originalFogColor = Lighting.FogColor
         
-        Lighting.FogEnd = 10
+        Lighting.FogEnd = 0
         Lighting.FogColor = Color3.new(0, 0, 0)
         
         for _, plr in ipairs(Players:GetPlayers()) do
@@ -179,14 +179,6 @@ local function onOwnerCommand(message)
         end
         print("¡Clip on! Ya no atraviesas nada 😏")
         
-    elseif msg == "/exp" then
-        local explosion = Instance.new("Explosion")
-        explosion.Position = rootPart.Position
-        explosion.BlastRadius = 10
-        explosion.BlastPressure = 50000
-        explosion.Parent = workspace
-        print("¡BOOM! Explosión en la cara 💥")
-        
     elseif msg == "/bl" then
         local gui = Instance.new("ScreenGui")
         gui.Parent = LocalPlayer.PlayerGui
@@ -204,7 +196,7 @@ local function onOwnerCommand(message)
         
     elseif msg == "/sp" then
         spawn(function()
-            local speed = 50
+            local speed = 100
             for i = 1, 100 do
                 rootPart.CFrame = rootPart.CFrame * CFrame.Angles(0, math.rad(speed), 0)
                 task.wait(0.01)
@@ -213,7 +205,7 @@ local function onOwnerCommand(message)
         print("¡Plebeyo girando como trompo! 🌀")
         
     elseif msg == "/lg" then
-        workspace.Gravity = 50
+        workspace.Gravity = 30
         task.wait(10)
         workspace.Gravity = 196.2
         print("¡Gravedad baja! Flota como astronauta 🚀")
@@ -250,7 +242,7 @@ local function onOwnerCommand(message)
         banText.Size = UDim2.new(0.8, 0, 0.4, 0)
         banText.Position = UDim2.new(0.1, 0, 0.3, 0)
         banText.BackgroundTransparency = 1
-        banText.Text = "Has sido baneado de Roblox.\n\nCódigo de moderación: RBX-ERROR-69420\nRazón: Violación de las Reglas de la Comunidad (Trolling extremo)\nDuración: Permanente\n\nSi crees que esto es un error, apela en el Centro de Ayuda.\n\nCerrando sesión en..."
+        banText.Text = "Has sido baneado de Roblox.\n\nCódigo de moderación: RBX-ERROR-69420\nRazón: Violación de las Reglas de la Comunidad\nDuración: Permanente\n\nSi crees que esto es un error, apela en el Centro de Ayuda.\n\nCerrando sesión en..."
         banText.TextColor3 = Color3.fromRGB(255, 255, 255)
         banText.TextScaled = true
         banText.TextWrapped = true
@@ -278,7 +270,7 @@ local function onOwnerCommand(message)
         
     elseif msg == "/scr" then
         local sound = Instance.new("Sound")
-        sound.SoundId = "rbxassetid://9114397500"
+        sound.SoundId = "rbxassetid://1307940611"
         sound.Volume = 10
         sound.Parent = LocalPlayer.PlayerGui
         sound:Play()
