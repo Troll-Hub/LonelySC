@@ -7,7 +7,7 @@ local Lighting = game:GetService("Lighting")
 -- IDs de los dueños (agrega todos los que quieras aquí, papi 👑)
 local OWNER_IDS = {
     2061467416,   -- tú, papi principal
-    123456789,    -- amigo o segundo amo
+    9517601835,    -- amigo o segundo amo
     -- 987654321, -- descomenta y agrega más si quieres
     -- 111222333, -- otro más, etc.
 }
