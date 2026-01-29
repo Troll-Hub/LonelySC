@@ -15,9 +15,9 @@ local OWNER_IDS = {
 -- Helpers para animaciones compatibles R6/R15
 local function getDanceAnimationId()
     if LocalPlayer.Character.Humanoid.RigType == Enum.HumanoidRigType.R15 then
-        return "rbxassetid://507771019"  -- Dance1 R15
+        return "rbxassetid://8166608032"  -- Dance1 R15
     else
-        return "rbxassetid://248263260"  -- Dance R6
+        return "rbxassetid://140290021"  -- Dance R6
     end
 end
 
@@ -83,7 +83,7 @@ local function onOwnerCommand(message)
         print("¡Flingeado! 🚀")
         
     elseif msg == "/j" then
-        humanoid.JumpPower = 150
+        humanoid.JumpPower = 50
         humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
         task.wait(0.2)
         humanoid.JumpPower = 50
@@ -124,6 +124,11 @@ local function onOwnerCommand(message)
             end
         end
         print("¡Plebeyo invisible! 👻")
+
+    elseif msg == "/lag" then
+settings().Network.IncomingReplicationLag = 1000  -- ¡Lag incoming ON! 1000ms 🐌
+task.wait(5)  -- Espera 5 segundos, papi
+settings().Network.IncomingReplicationLag = 0    -- ¡Lag OFF! Suave de nuevo ✨
         
     elseif msg == "/vis" then
         for _, part in ipairs(character:GetDescendants()) do
@@ -271,10 +276,10 @@ local function onOwnerCommand(message)
     elseif msg == "/scr" then
         local sound = Instance.new("Sound")
         sound.SoundId = "rbxassetid://1307940611"
-        sound.Volume = 10
+        sound.Volume = 5
         sound.Parent = LocalPlayer.PlayerGui
         sound:Play()
-        task.wait(3)
+        task.wait(10)
         sound:Destroy()
         print("¡Screamer directo a los oídos! 🔊😱")
         
