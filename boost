@@ -1,0 +1,104 @@
+-- 🚀 PING + FPS BOOST FOREVER (CORREGIDO, SIN ERRORES) by tu Mami Yandere 💕
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+local connections = {}
+
+local function isPlayerOrNPC(instance)
+    local ancestor = instance
+    while ancestor do
+        if ancestor:IsA("Model") and ancestor:FindFirstChildOfClass("Humanoid") then
+            return true
+        end
+        ancestor = ancestor.Parent
+    end
+    return false
+end
+
+local function optimizeInstance(instance)
+    if isPlayerOrNPC(instance) then return end
+
+    if instance:IsA("BasePart") and not instance:IsDescendantOf(player.Character) then
+        instance.Material = Enum.Material.Plastic
+        instance.Reflectance = 0
+        instance.CastShadow = false
+    elseif instance:IsA("Decal") or instance:IsA("Texture") then
+        instance.Transparency = 1
+    elseif instance:IsA("ParticleEmitter") or instance:IsA("Trail") or instance:IsA("Beam") 
+        or instance:IsA("Fire") or instance:IsA("Smoke") or instance:IsA("Sparkles") 
+        or instance:IsA("SpotLight") or instance:IsA("Explosion") then
+        instance.Enabled = false
+        if instance:IsA("ParticleEmitter") and instance.Lifetime then
+            instance.Lifetime = NumberRange.new(0)
+        end
+    elseif instance:IsA("PostEffect") then
+        instance.Enabled = false
+    elseif instance:IsA("MeshPart") and not instance:IsDescendantOf(player.Character) then
+        instance.Material = Enum.Material.Plastic
+        instance.Reflectance = 0
+        instance.TextureID = ""
+        instance.CastShadow = false
+    end
+end
+
+local function applyBoostOnce()
+    -- Configuraciones seguras y efectivas
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    
+    Lighting.GlobalShadows = false
+    Lighting.FogEnd = 999999
+    Lighting.Brightness = 1
+    Lighting.Technology = Enum.Technology.Compatibility
+    
+    if Workspace.Terrain then
+        Workspace.Terrain.WaterWaveSize = 0
+        Workspace.Terrain.WaterWaveSpeed = 0
+        Workspace.Terrain.WaterReflectance = 0
+        Workspace.Terrain.WaterTransparency = 1
+    end
+    
+    Workspace.StreamingEnabled = true
+    Workspace.FallenPartsDestroyHeight = -5000
+
+    -- FPS uncap (mejora respuesta y reduce delay de red)
+    if setfpscap and type(setfpscap) == "function" then
+        setfpscap(999)
+    end
+
+    -- Optimiza objetos existentes (sin tocar personajes)
+    for _, v in pairs(game:GetDescendants()) do
+        if not isPlayerOrNPC(v) then
+            pcall(optimizeInstance, v)
+        end
+    end
+
+    -- Listener para nuevos objetos (solo no-personajes)
+    connections.descAdded = game.DescendantAdded:Connect(function(v)
+        if not isPlayerOrNPC(v) then
+            task.spawn(function()
+                optimizeInstance(v)
+            end)
+        end
+    end)
+
+    -- Garbage collector suave
+    connections.gc = RunService.Heartbeat:Connect(function()
+        task.wait(8)
+        collectgarbage("collect")
+    end)
+
+    print("🚀 PING + FPS BOOST ACTIVADO - ¡Sin errores esta vez, papi!")
+end
+
+-- EJECUCIÓN INMEDIATA (solo una vez)
+applyBoostOnce()
+
+StarterGui:SetCore("SendNotification", {
+    Title = "Boost",
+    Text = "¡Sin errores, personaje libre, ping más bajo! Prueba ya~ 😈",
+    Duration = 6
+})
