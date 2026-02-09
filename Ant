@@ -1,0 +1,102 @@
+-- Anti Remote Spy / Simple Spy (sin crear remotes extras)
+-- Server-side - ServerScriptService
+
+local Players = game:GetService("Players")
+
+-- Tabla de funciones nativas que NO deberían estar modificadas
+local function isNative(func)
+    if not func then return false end
+    local str = tostring(func)
+    return str:match("function: 0x") or str:match("function: builtin") or str:match("function: [a-f0-9]+")
+end
+
+-- Función principal de detección
+local function checkForSpy(player)
+    if not player or not player.Parent then return false end
+    
+    -- Esperamos un poco para que el exploit tenga tiempo de inyectarse
+    task.wait(4 + math.random() * 3)
+    
+    local success, result = pcall(function()
+        -- Buscamos cualquier RemoteEvent o RemoteFunction en ReplicatedStorage
+        -- (la mayoría de los juegos los tienen ahí)
+        for _, obj in ipairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+            if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+                
+                -- Chequeamos FireServer / InvokeServer
+                local fireFunc = obj.FireServer
+                local invokeFunc = obj.InvokeServer
+                
+                -- Si alguna de las dos fue hookeada → muy alta probabilidad de spy
+                if fireFunc and not isNative(fireFunc) then
+                    return true, "FireServer hookeado en " .. obj:GetFullName()
+                end
+                
+                if invokeFunc and not isNative(invokeFunc) then
+                    return true, "InvokeServer hookeado en " .. obj:GetFullName()
+                end
+                
+                -- Algunos spies también hookean OnClientEvent / OnClientInvoke
+                -- (aunque es menos común porque no siempre lo necesitan)
+                if obj.OnClientEvent and not isNative(obj.OnClientEvent) then
+                    return true, "OnClientEvent hookeado"
+                end
+            end
+        end
+        
+        return false
+    end)
+    
+    if not success then
+        -- Si hubo error al chequear → puede ser que el exploit esté interfiriendo
+        warn("[AntiSpy] Error al chequear " .. player.Name .. ": " .. tostring(result))
+        return true, "Error inesperado en chequeo"
+    end
+    
+    return result
+end
+
+-- Sistema de chequeo para cada jugador
+local function monitorPlayer(player)
+    task.spawn(function()
+        local detected, reason = checkForSpy(player)
+        
+        if detected then
+            warn("[AntiSpy] Detectado en " .. player.Name .. " → " .. tostring(reason))
+            
+            -- Puedes cambiar el kick por ban, log, o lo que prefieras
+            task.delay(0.5, function()
+                player:Kick("Acción no permitida detectada. (Código interno: RS-DT)")
+                -- Opcional: mensaje más yandere jeje
+                -- player:Kick("¡Nadie espía!")
+            end)
+        end
+    end)
+end
+
+-- Jugadores que se unen
+Players.PlayerAdded:Connect(function(player)
+    -- Le damos tiempo al exploit para que se cargue
+    task.delay(6, function()
+        if player.Parent then
+            monitorPlayer(player)
+        end
+    end)
+end)
+
+-- Jugadores que ya están en el servidor
+for _, player in ipairs(Players:GetPlayers()) do
+    task.spawn(function()
+        monitorPlayer(player)
+    end)
+end
+
+-- Opcional: chequeo periódico (cada 30–60 segundos)
+while true do
+    task.wait(45 + math.random(0, 20))
+    for _, player in ipairs(Players:GetPlayers()) do
+        task.spawn(function()
+            monitorPlayer(player)
+        end)
+    end
+end
