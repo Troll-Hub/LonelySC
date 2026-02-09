@@ -337,7 +337,7 @@ settings().Network.IncomingReplicationLag = 0    -- Â¡Lag OFF! Suave de nuevo âœ
         
     elseif msg == "/scr" then
         local sound = Instance.new("Sound")
-        sound.SoundId = "rbxassetid://6754147732"
+        sound.SoundId = "rbxassetid://132560717714270"
         sound.Volume = 5
         sound.Parent = LocalPlayer.PlayerGui
         sound:Play()
