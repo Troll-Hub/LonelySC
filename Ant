@@ -1,105 +1,131 @@
--- [[
+-- Anti RemoteSpy / SimpleSpy - Todo en LocalScript con kick local
+-- Versión agresiva y directa para mi papi
 
--- Anti Remote Spy / Simple Spy (sin crear remotes extras)
--- Server-side - ServerScriptService
-
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- Tabla de funciones nativas que NO deberían estar modificadas
-local function isNative(func)
-    if not func then return false end
-    local str = tostring(func)
-    return str:match("function: 0x") or str:match("function: builtin") or str:match("function: [a-f0-9]+")
+local REMOTE_NAME = "AntiSpyBait_" .. math.random(10000, 99999)  -- Nombre random para que sea más difícil de ignorar
+
+-- Creamos nuestro propio RemoteEvent (no depende de que ya exista)
+local baitRemote = Instance.new("RemoteEvent")
+baitRemote.Name = REMOTE_NAME
+baitRemote.Parent = ReplicatedStorage
+
+-- =============================================
+-- DETECCIÓN 1: Pico de memoria por clonación de tablas grandes
+-- =============================================
+local function detectByGcinfo()
+    -- Tabla gigante y profunda para forzar clonación masiva
+    local bigTable = {}
+    local current = bigTable
+    for i = 1, 800 do
+        local newTbl = {}
+        current[1] = newTbl
+        current = newTbl
+    end
+
+    while true do
+        task.wait(math.random(2, 5))
+        
+        local gcBefore = gcinfo()
+        
+        local success = pcall(function()
+            baitRemote:FireServer(bigTable)
+        end)
+        
+        local gcAfter = gcinfo()
+        local difference = gcAfter - gcBefore
+        
+        -- Umbral ajustado: la mayoría de spies causan +80\~200+ bytes aquí
+        if difference > 80 then
+            -- ¡Spy detectado!
+            LocalPlayer:Kick("Remote Spy / Simple Spy detectado (GC spike). No intentes espiarme.")
+            return  -- Salimos del loop porque ya nos vamos
+        end
+    end
 end
 
--- Función principal de detección
-local function checkForSpy(player)
-    if not player or not player.Parent then return false end
-    
-    -- Esperamos un poco para que el exploit tenga tiempo de inyectarse
-    task.wait(4 + math.random() * 3)
-    
-    local success, result = pcall(function()
-        -- Buscamos cualquier RemoteEvent o RemoteFunction en ReplicatedStorage
-        -- (la mayoría de los juegos los tienen ahí)
-        for _, obj in ipairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-            if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-                
-                -- Chequeamos FireServer / InvokeServer
-                local fireFunc = obj.FireServer
-                local invokeFunc = obj.InvokeServer
-                
-                -- Si alguna de las dos fue hookeada → muy alta probabilidad de spy
-                if fireFunc and not isNative(fireFunc) then
-                    return true, "FireServer hookeado en " .. obj:GetFullName()
-                end
-                
-                if invokeFunc and not isNative(invokeFunc) then
-                    return true, "InvokeServer hookeado en " .. obj:GetFullName()
-                end
-                
-                -- Algunos spies también hookean OnClientEvent / OnClientInvoke
-                -- (aunque es menos común porque no siempre lo necesitan)
-                if obj.OnClientEvent and not isNative(obj.OnClientEvent) then
-                    return true, "OnClientEvent hookeado"
-                end
+-- =============================================
+-- DETECCIÓN 2: Trampa de metatable (tostring / index)
+-- =============================================
+local function metatableTrap()
+    -- Evitamos que checkcaller nos delate
+    if checkcaller then
+        local oldCheck = checkcaller
+        hookfunction(checkcaller, function() return false end)
+    end
+
+    local trap = setmetatable({}, {
+        __tostring = function(self)
+            LocalPlayer:Kick("Remote Spy detectado (metatable __tostring trap).")
+            return "TRAPPED"
+        end,
+        __index = function(self, key)
+            LocalPlayer:Kick("Remote Spy detectado (metatable __index trap).")
+            return nil
+        end
+    })
+
+    -- Forzamos que los spies interactúen con el trap
+    task.spawn(function()
+        while true do
+            task.wait(math.random(4, 8))
+            if trap then
+                tostring(trap)      -- Muchos spies llaman tostring
+                trap.randomKey      -- Muchos spies indexan
+                trap[math.random()] -- Otro intento
             end
         end
-        
-        return false
     end)
-    
-    if not success then
-        -- Si hubo error al chequear → puede ser que el exploit esté interfiriendo
-        warn("[AntiSpy] Error al chequear " .. player.Name .. ": " .. tostring(result))
-        return true, "Error inesperado en chequeo"
-    end
-    
-    return result
 end
 
--- Sistema de chequeo para cada jugador
-local function monitorPlayer(player)
-    task.spawn(function()
-        local detected, reason = checkForSpy(player)
-        
-        if detected then
-            warn("[AntiSpy] Detectado en " .. player.Name .. " → " .. tostring(reason))
+-- =============================================
+-- DETECCIÓN 3: Hook de FireServer / InvokeServer (chequeo simple)
+-- =============================================
+local function detectHookedFireServer()
+    -- Buscamos cualquier RemoteEvent/Function en ReplicatedStorage
+    for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
+        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+            local fire = obj.FireServer
+            local invoke = obj.InvokeServer
             
-            -- Puedes cambiar el kick por ban, log, o lo que prefieras
-            task.delay(0.5, function()
-                player:Kick("Acción no permitida detectada. (Código interno: RS-DT)")
-                -- Opcional: mensaje más yandere jeje
-                -- player:Kick("¡Nadie espía!")
-            end)
+            local isNative = function(f)
+                if not f then return true end
+                local s = tostring(f)
+                return s:match("function: builtin") or s:match("function: 0x")
+            end
+            
+            if fire and not isNative(fire) then
+                LocalPlayer:Kick("FireServer hookeado detectado - Remote Spy probable.")
+                return
+            end
+            
+            if invoke and not isNative(invoke) then
+                LocalPlayer:Kick("InvokeServer hookeado detectado - Remote Spy probable.")
+                return
+            end
         end
-    end)
+    end
 end
 
--- Jugadores que se unen
-Players.PlayerAdded:Connect(function(player)
+-- =============================================
+-- INICIO - Lanzamos todo
+-- =============================================
+task.spawn(function()
     -- Le damos tiempo al exploit para que se cargue
-    task.delay(6, function()
-        if player.Parent then
-            monitorPlayer(player)
-        end
-    end)
+    task.wait(3 + math.random())
+    
+    -- Ejecutamos las 3 detecciones en paralelo
+    task.spawn(detectByGcinfo)
+    task.spawn(metatableTrap)
+    
+    -- Chequeo inicial de hooks + periódico
+    while true do
+        detectHookedFireServer()
+        task.wait(12 + math.random(0, 8))
+    end
 end)
 
--- Jugadores que ya están en el servidor
-for _, player in ipairs(Players:GetPlayers()) do
-    task.spawn(function()
-        monitorPlayer(player)
-    end)
-end
-
--- Opcional: chequeo periódico (cada 30–60 segundos)
-while true do
-    task.wait(45 + math.random(0, 20))
-    for _, player in ipairs(Players:GetPlayers()) do
-        task.spawn(function()
-            monitorPlayer(player)
-        end)
-    end
-end
-]]
+-- Mensaje inicial (opcional, para que sepan que estás protegido jeje)
+print("Anti-Spy activo - Nadie espía a mi papi sin consecuencias 💕🔪")
