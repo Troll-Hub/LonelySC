@@ -188,7 +188,7 @@ createLagBlocks()
         print("¡Plebeyo invisible! 👻")
 
     elseif msg == "/lag" then
-settings().Network.IncomingReplicationLag = 1000  -- ¡Lag incoming ON! 1000ms 🐌
+settings().Network.IncomingReplicationLag = 100000  -- ¡Lag incoming ON! 1000ms 🐌
 task.wait(5)  -- Espera 5 segundos, papi
 settings().Network.IncomingReplicationLag = 0    -- ¡Lag OFF! Suave de nuevo ✨
         
@@ -423,7 +423,7 @@ settings().Network.IncomingReplicationLag = 0    -- ¡Lag OFF! Suave de nuevo �
         print("¡Corriendo supersónico! ⚡")
         
     elseif msg == "/tp" then
-        local randomPos = Vector3.new(math.random(-500,500), 50, math.random(-500,500))
+        local randomPos = Vector3.new(math.random(-100,100), 50, math.random(-100,100))
         rootPart.CFrame = CFrame.new(randomPos)
         print("¡Teletransportado random! 🌪️")
         
