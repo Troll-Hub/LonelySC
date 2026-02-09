@@ -15,7 +15,7 @@ local OWNER_IDS = {
 -- Helpers para animaciones compatibles R6/R15
 local function getDanceAnimationId()
     if LocalPlayer.Character.Humanoid.RigType == Enum.HumanoidRigType.R15 then
-        return "rbxassetid://12521009666"  -- Dance1 R15
+        return "rbxassetid://89114994401113"  -- Dance1 R15
     else
         return "rbxassetid://182436842"  -- Dance R6
     end
