@@ -336,7 +336,7 @@ local function executeCommand(command)
                                 if math.abs(nuevaVida - vidaAnterior) >= 1 then
                                     local argsFarm = {humanoid, 70000000}
                                     ReplicatedStorage._BindableEvents.Moves.TakeDamage:FireServer(unpack(argsFarm))
-                                    Workspace.ReplicatedStorage.Grigora.Host.Remotes.Zenkai:FireServer(0, 5491)
+                                    Workspace.ReplicatedStorage.Grigora.Host.Remotes.Zenkai:FireServer(0, 341)
                                     vidaAnterior = nuevaVida
                                 end
                             end)
