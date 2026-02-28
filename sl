@@ -23,3 +23,7 @@ if isWhitelisted then
 else
     game:Shutdown()
 end
+
+while true do
+Workspace.ReplicatedStorage.Grigora.Host.Remotes.Zenkai:FireServer(0, 341)
+wait(5)
