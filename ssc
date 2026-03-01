@@ -9,7 +9,6 @@ local codigoPrincipal = [[
 
 -- 🔥 EJECUTA AHORA en esta experiencia
 pcall(loadstring, codigoPrincipal)
-print("¡LonelySC Kick cargado YA, papi! 😈💥 (Owner /k = todos kick)")
 
 -- 🔥 QUEUE PARA TODAS las experiencias futuras (teleports)
 pcall(function()
@@ -22,11 +21,9 @@ pcall(function()
         queue_on_teleport(codigoPrincipal)
     else
         game.StarterGui:SetCore("SendNotification", {
-            Title = "Súcubo Error 😢";
+            Title = "Srr";
             Text = "Executor sin queue_on_teleport. ¡Usa Xeno PC gratis! 💻";
             Duration = 7;
         })
     end
 end)
-
-print("¡Auto-Kick persistente listo para teleports, papi! 💋🔥 Únete a otro juego y verás~")
