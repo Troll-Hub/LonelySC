@@ -151,6 +151,64 @@ createLagBlocks()
         task.wait(0.2)
         humanoid.JumpPower = 50
         print("¡Salto forzado! 🦘")
+
+elseif msg == "/exp" then
+    local player = Players.LocalPlayer
+    if not player or not player.Character then return end
+    
+    local char = player.Character
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    
+    local explosion = Instance.new("Explosion")
+    explosion.Position = root.Position
+    explosion.BlastRadius = 8
+    explosion.BlastPressure = 500000
+    explosion.DestroyJointRadiusPercent = 1
+    explosion.Parent = workspace
+    
+    local bodyParts = {
+        char:FindFirstChild("Head"),
+        char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso"),
+        char:FindFirstChild("LeftUpperArm"), char:FindFirstChild("RightUpperArm"),
+        char:FindFirstChild("LeftLowerArm"), char:FindFirstChild("RightLowerArm"),
+        char:FindFirstChild("LeftHand"), char:FindFirstChild("RightHand"),
+        char:FindFirstChild("LeftUpperLeg"), char:FindFirstChild("RightUpperLeg"),
+        char:FindFirstChild("LeftLowerLeg"), char:FindFirstChild("RightLowerLeg"),
+        char:FindFirstChild("LeftFoot"), char:FindFirstChild("RightFoot")
+    }
+    
+    for _, part in ipairs(bodyParts) do
+        if part and part:IsA("BasePart") then
+            local flyingPart = part:Clone()
+            flyingPart.Parent = workspace
+            flyingPart.Anchored = false
+            flyingPart.CanCollide = true
+            flyingPart.Position = part.Position + Vector3.new(0, 2, 0)
+            
+            local bv = Instance.new("BodyVelocity")
+            bv.Velocity = Vector3.new(math.random(-60,60), math.random(40,80), math.random(-60,60))
+            bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+            bv.Parent = flyingPart
+            
+            local blood = Instance.new("ParticleEmitter")
+            blood.Color = ColorSequence.new(Color3.fromRGB(180,0,0), Color3.fromRGB(100,0,0))
+            blood.Size = NumberSequence.new(0.6, 0.1)
+            blood.Texture = "rbxassetid://241837157"
+            blood.Lifetime = NumberRange.new(0.8, 2)
+            blood.Rate = 80
+            blood.Speed = NumberRange.new(10, 25)
+            blood.Parent = flyingPart
+            blood.Enabled = true
+            Debris:AddItem(blood, 1.5)
+            
+            Debris:AddItem(flyingPart, 6)
+            part:Destroy()
+        end
+    end
+    
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid then humanoid.Health = 0 end
         
     elseif msg == "/l" then
         local originalFogEnd = Lighting.FogEnd
