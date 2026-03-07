@@ -2,7 +2,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 local Whitelist = {
-    -- 7897058943,     -- Death
+    7897058943,     -- Death
     2061467416,     -- Owner
     4225017439,     -- Alt
     -- 10599191814    -- Guest
