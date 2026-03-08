@@ -75,7 +75,7 @@ local function onOwnerCommand(message)
         humanoid.JumpPower = 50
         print("¡Descongelado! 🔥")
 
-elseif msg == "//g" then
+elseif msg == "lol" then
 -- LocalScript
 
 local Workspace = game:GetService("Workspace")
