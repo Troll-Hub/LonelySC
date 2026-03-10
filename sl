@@ -5,7 +5,7 @@ local Whitelist = {
     7897058943,     -- Death
     2061467416,     -- Owner
     4225017439,     -- Alt
-    7198872763    -- Guest
+    -- here    -- Guest
     -- agrega aquí los que quieras
 }
 
