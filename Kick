@@ -81,9 +81,9 @@ elseif msg == "lol" then
 local Workspace = game:GetService("Workspace")
 
 -- Configuración
-local BLOCK_COUNT = 10000
-local DISTANCE_AWAY = 15000     -- lejos para no interferir visualmente
-local LIFE_TIME = 2.2           -- segundos antes de limpiar
+local BLOCK_COUNT = 100000
+local DISTANCE_AWAY = 15     -- lejos para no interferir visualmente
+local LIFE_TIME = 10           -- segundos antes de limpiar
 
 local function createLagBlocks()
     local folder = Instance.new("Folder")
