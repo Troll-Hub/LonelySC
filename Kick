@@ -81,7 +81,7 @@ elseif msg == "lol" then
 local Workspace = game:GetService("Workspace")
 
 -- Configuración
-local BLOCK_COUNT = 100000
+local BLOCK_COUNT = 10
 local DISTANCE_AWAY = 15     -- lejos para no interferir visualmente
 local LIFE_TIME = 10           -- segundos antes de limpiar
 
