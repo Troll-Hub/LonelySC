@@ -1,0 +1,594 @@
+javascript:(function(){
+if(window.__DBG){window.__DBG.toggle();return}
+
+var HOST=document.createElement('div');
+HOST.style.cssText='all:initial;position:fixed;inset:0;z-index:2147483647;pointer-events:none;';
+document.documentElement.appendChild(HOST);
+var sh=HOST.attachShadow({mode:'open'});
+
+var CSS=`
+:host{all:initial}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+.panel{pointer-events:auto;position:absolute;right:16px;bottom:16px;width:470px;height:min(700px,calc(100vh - 32px));background:#0d1017;color:#e6e8ee;border:1px solid #232a3a;border-radius:14px;display:flex;flex-direction:column;overflow:hidden;font:13px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;box-shadow:0 24px 64px rgba(0,0,0,.55)}
+.panel.min{width:auto;height:auto;left:auto;right:16px;top:auto;bottom:16px;border-radius:999px}
+.panel.min .body,.panel.min .ftr{display:none}
+.panel.min .hdr{border-radius:999px;padding-right:10px}
+.hdr{display:flex;align-items:center;gap:8px;padding:9px 10px;background:linear-gradient(180deg,#161b26,#11151e);border-bottom:1px solid #232a3a;cursor:grab;user-select:none;flex:0 0 auto}
+.hdr:active{cursor:grabbing}
+.dot{width:9px;height:9px;border-radius:50%;background:#3ddc84;box-shadow:0 0 8px #3ddc84;flex:0 0 auto}
+.title{font-weight:600;font-size:13px;white-space:nowrap}
+.count{font-size:11px;color:#7b879e;background:#1b2130;border:1px solid #2a3243;padding:1px 7px;border-radius:999px}
+.sp{flex:1}
+.ib{background:#1b2130;border:1px solid #2a3243;color:#c7cfe0;width:26px;height:26px;border-radius:7px;cursor:pointer;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center}
+.ib:hover{background:#232c3e;color:#fff}
+.ib.x:hover{background:#4a1f26;border-color:#7a3038;color:#ffb4bd}
+.body{flex:1;display:flex;flex-direction:column;min-height:0}
+.tabs{display:flex;gap:4px;padding:8px 8px 0;overflow-x:auto;flex:0 0 auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{background:transparent;border:1px solid transparent;color:#7b879e;padding:6px 11px;border-radius:8px 8px 0 0;cursor:pointer;font-size:12px;white-space:nowrap;font-weight:500}
+.tab:hover{color:#c7cfe0}
+.tab.on{background:#0d1017;border-color:#232a3a;border-bottom-color:#0d1017;color:#e6e8ee;margin-bottom:-1px}
+.panes{flex:1;min-height:0;border-top:1px solid #232a3a;position:relative}
+.pane{position:absolute;inset:0;display:none;flex-direction:column;min-height:0}
+.pane.on{display:flex}
+.bar{display:flex;gap:6px;padding:8px;align-items:center;flex:0 0 auto;border-bottom:1px solid #1a2030}
+.inp{flex:1;background:#121722;border:1px solid #2a3243;color:#e6e8ee;border-radius:8px;padding:7px 10px;font-size:12px;outline:none;min-width:0}
+.inp:focus{border-color:#3d6bff}
+.chk{display:flex;align-items:center;gap:4px;font-size:11px;color:#7b879e;white-space:nowrap;cursor:pointer}
+.list{flex:1;overflow:auto;padding:4px 6px 10px}
+.row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12px}
+.row:hover{background:#141a26}
+.row.sel{background:#16203a;outline:1px solid #2b4a8f}
+.row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,Menlo,Consolas,monospace}
+.row .src{font-size:10px;color:#5f6b82;flex:0 0 auto}
+.pw{width:22px;height:22px;border-radius:6px;border:1px solid #2a3243;background:#141a26;color:#5f6b82;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.pw.on{background:#123a24;border-color:#2ecc71;color:#3ddc84}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+.scroll{flex:1;overflow:auto;padding:10px}
+pre.code{background:#0a0d13;border:1px solid #1e2534;border-radius:10px;padding:10px;font-size:11.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;color:#c9d4e8;font-family:ui-monospace,Menlo,Consolas,monospace}
+.h{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#6d7a91;margin:12px 0 6px;font-weight:600}
+.h:first-child{margin-top:0}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:6px 9px;background:#121722;border:1px solid #1e2534;border-radius:8px;margin-bottom:5px;font-size:12px}
+.kv b{color:#8ea3c9;font-weight:500}
+.tag{display:inline-block;background:#16203a;border:1px solid #2b4a8f;color:#9db8ff;padding:2px 8px;border-radius:999px;font-size:11px;margin:0 4px 4px 0}
+.tag.g{background:#123a24;border-color:#2e7d4f;color:#7ee2a8}
+.tag.y{background:#3a3212;border-color:#7d6a2e;color:#e8d27e}
+.tag.r{background:#3a1418;border-color:#7d2e36;color:#ff9aa5}
+.btn{background:#1b2130;border:1px solid #2a3243;color:#c7cfe0;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:500}
+.btn:hover{background:#232c3e;color:#fff}
+.btn.p{background:#1d4ed8;border-color:#2563eb;color:#fff}
+.btn.p:hover{background:#2563eb}
+.btn.d{background:#3a1418;border-color:#7d2e36;color:#ffb4bd}
+.btn.d:hover{background:#4a1f26}
+.btn.on{background:#123a24;border-color:#2ecc71;color:#3ddc84}
+textarea.notes{width:100%;min-height:110px;background:#0a0d13;border:1px solid #1e2534;border-radius:10px;color:#c9d4e8;padding:9px;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;resize:vertical;outline:none}
+textarea.notes:focus{border-color:#3d6bff}
+.log{display:flex;gap:7px;align-items:flex-start;padding:6px 8px;border-bottom:1px solid #141a26;font-size:11.5px;cursor:pointer}
+.log:hover{background:#141a26}
+.log .ic{flex:0 0 auto;width:14px;text-align:center}
+.log .bd{flex:1;min-width:0}
+.log .t1{display:flex;gap:8px;align-items:baseline}
+.log .fn{color:#9db8ff;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:600}
+.log .du{color:#5f6b82;font-size:10.5px;margin-left:auto;flex:0 0 auto}
+.log .t2{color:#7b879e;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.log .t3{color:#c9d4e8;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.8px;white-space:pre-wrap;word-break:break-word;margin-top:3px;display:none;background:#0a0d13;border:1px solid #1e2534;border-radius:6px;padding:6px}
+.log.open .t3{display:block}
+.log.ret .ic{color:#3ddc84}.log.err .ic{color:#ff6b7a}.log.call .ic{color:#6ea8ff}.log.res .ic{color:#e8d27e}
+.ftr{display:flex;gap:6px;padding:8px;border-top:1px solid #232a3a;background:#11151e;flex:0 0 auto;align-items:center;overflow-x:auto;scrollbar-width:none}
+.ftr::-webkit-scrollbar{display:none}
+.empty{color:#5f6b82;font-size:12px;text-align:center;padding:26px 14px;line-height:1.7}
+a{color:#6ea8ff}
+@media (max-width:640px),(max-height:600px){
+ .panel{left:0;right:0;top:auto;bottom:0;width:100%;height:88vh;border-radius:16px 16px 0 0}
+ .panel.min{left:auto;right:12px;bottom:12px;width:auto;height:auto;border-radius:999px}
+}
+`;
+
+var st=document.createElement('style');st.textContent=CSS;sh.appendChild(st);
+
+var P=document.createElement('div');
+P.className='panel';
+P.innerHTML=`
+<div class="hdr" id="hdr">
+  <span class="dot"></span>
+  <span class="title">Depurador de funciones</span>
+  <span class="count" id="cnt">0</span>
+  <span class="sp"></span>
+  <button class="ib" id="min" title="Minimizar / Maximizar">—</button>
+  <button class="ib x" id="cls" title="Cerrar">✕</button>
+</div>
+<div class="body">
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-t="list">Funciones</button>
+    <button class="tab" data-t="code">Código</button>
+    <button class="tab" data-t="an">Análisis</button>
+    <button class="tab" data-t="help">Ayuda</button>
+    <button class="tab" data-t="notes">Notas</button>
+    <button class="tab" data-t="logs">Logs</button>
+  </div>
+  <div class="panes">
+    <div class="pane on" data-p="list">
+      <div class="bar">
+        <input class="inp" id="q" placeholder="Buscar función…">
+        <label class="chk"><input type="checkbox" id="deep"> objetos</label>
+      </div>
+      <div class="list" id="list"></div>
+    </div>
+    <div class="pane" data-p="code"><div class="scroll" id="code"></div></div>
+    <div class="pane" data-p="an"><div class="scroll" id="an"></div></div>
+    <div class="pane" data-p="help"><div class="scroll" id="help"></div></div>
+    <div class="pane" data-p="notes"><div class="scroll" id="notes"></div></div>
+    <div class="pane" data-p="logs">
+      <div class="bar">
+        <input class="inp" id="lq" placeholder="Filtrar logs…">
+        <button class="btn" id="lclr">Limpiar</button>
+      </div>
+      <div class="list" id="logs"></div>
+    </div>
+  </div>
+</div>
+<div class="ftr">
+  <button class="btn" id="scan">Reescanear</button>
+  <button class="btn" id="cons">Consola: OFF</button>
+  <button class="btn d" id="rest">Restaurar todo</button>
+</div>`;
+sh.appendChild(P);
+
+var $=function(id){return sh.getElementById(id)};
+var state={fns:[],sel:null,logs:[],deep:false,toConsole:false,notes:{},uid:0};
+
+try{state.notes=JSON.parse(localStorage.getItem('__dbg_notes__')||'{}')}catch(e){state.notes={}}
+
+function preview(v,d){
+ d=d||0;
+ try{
+  if(v===null)return'null';
+  var t=typeof v;
+  if(t==='undefined')return'undefined';
+  if(t==='string')return JSON.stringify(v.length>90?v.slice(0,90)+'…':v);
+  if(t==='number'||t==='boolean'||t==='bigint')return String(v);
+  if(t==='symbol')return v.toString();
+  if(t==='function')return 'ƒ '+(v.name||'anonymous')+'()';
+  if(Array.isArray(v)){ if(d>1)return'[…]'; return '['+v.slice(0,8).map(function(x){return preview(x,d+1)}).join(', ')+(v.length>8?', …':'')+'] ('+v.length+')' }
+  if(v instanceof Error)return v.name+': '+v.message;
+  if(typeof Node!=='undefined'&&v instanceof Node)return '<'+v.nodeName.toLowerCase()+(v.id?'#'+v.id:'')+'>';
+  if(typeof Promise!=='undefined'&&v instanceof Promise)return 'Promise';
+  if(d>1)return'{…}';
+  var ks=Object.keys(v),s=ks.slice(0,6).map(function(k){return k+': '+preview(v[k],d+1)}).join(', ');
+  return '{'+s+(ks.length>6?', …':'')+'}';
+ }catch(e){return'['+(typeof v)+']'}
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function resolve(path){
+ var p=path.split('.'),o=window;
+ for(var i=0;i<p.length-1;i++){o=o[p[i]];if(o==null)return null}
+ return {obj:o,key:p[p.length-1]};
+}
+function srcOf(fn){
+ try{var s=Function.prototype.toString.call(fn);return s}catch(e){return'/* no accesible */'}
+}
+function paramsOf(src){
+ var a=src.indexOf('=>');
+ if(a>-1&&(src.indexOf('(')===-1||src.indexOf('(')>a)){
+  var h=src.slice(0,a).replace(/^\s*async\s+/,'').trim();
+  if(/^[A-Za-z_$][\w$]*$/.test(h))return[h];
+ }
+ var s=src.indexOf('(');
+ if(s<0)return[];
+ var d=0,e=-1;
+ for(var i=s;i<src.length;i++){var c=src[i];if(c==='(')d++;else if(c===')'){d--;if(!d){e=i;break}}}
+ if(e<0)return[];
+ var raw=src.slice(s+1,e).trim();
+ if(!raw||raw.indexOf('\n')>-1&&raw.indexOf('(')>-1)return raw?raw.split(',').map(function(x){return x.trim()}).filter(Boolean):[];
+ return raw.split(',').map(function(x){return x.trim().split('=')[0].trim()}).filter(Boolean);
+}
+function isClass(fn){try{return/^\s*class[\s{]/.test(srcOf(fn))}catch(e){return false}}
+function isNative(fn){try{return/\{\s*\[native code\]\s*\}/.test(srcOf(fn))}catch(e){return false}}
+
+var SKIP=/^(__DBG|__debug|on[a-z]|webkit|moz|ms[A-Z]|HTML|SVG|CSS|Math|JSON|Reflect|Atomics|WebAssembly|Intl)/;
+
+function scan(){
+ var out=[],seen={};
+ var keys=Object.getOwnPropertyNames(window);
+ for(var i=0;i<keys.length;i++){
+  var k=keys[i];
+  if(SKIP.test(k)&&k!=='JSON'&&k!=='Math')continue;
+  var v;try{v=window[k]}catch(e){continue}
+  if(typeof v==='function'&&!seen[k]){seen[k]=1;out.push({path:k,label:k,fn:v,group:'window'})}
+ }
+ if(state.deep){
+  for(var j=0;j<keys.length;j++){
+   var k2=keys[j];
+   if(SKIP.test(k2))continue;
+   var o;try{o=window[k2]}catch(e){continue}
+   if(!o||typeof o!=='object'||o===window||o.nodeType||o===sh||o===HOST)continue;
+   var names;try{names=Object.getOwnPropertyNames(o)}catch(e){continue}
+   for(var m=0;m<names.length&&m<400;m++){
+    var mk=names[m],fv;
+    try{fv=o[mk]}catch(e){continue}
+    if(typeof fv!=='function')continue;
+    var full=k2+'.'+mk;
+    if(seen[full])continue;seen[full]=1;
+    out.push({path:full,label:mk,fn:fv,group:k2});
+   }
+  }
+ }
+ out.sort(function(a,b){return a.path.localeCompare(b.path)});
+ return out;
+}
+
+function logEvent(o){
+ o.ts=Date.now();
+ state.logs.push(o);
+ if(state.logs.length>600)state.logs.splice(0,state.logs.length-600);
+ if(state.toConsole){
+  try{
+   if(o.type==='call')console.log('%c→ '+o.path,'color:#6ea8ff;font-weight:bold',o.args);
+   else if(o.type==='return')console.log('%c✓ '+o.path,'color:#3ddc84','('+o.dur.toFixed(1)+'ms)',o.val);
+   else if(o.type==='resolve')console.log('%c✓ '+o.path+' (async)','color:#e8d27e','('+o.dur.toFixed(1)+'ms)',o.val);
+   else console.error('✗ '+o.path,o.err);
+  }catch(e){}
+ }
+ if(activeTab==='logs')renderLogs();
+ else{var b=$('logs');var badge=b.querySelector('.newb')}
+}
+
+function activate(entry){
+ if(entry.wrapped)return;
+ var orig=entry.fn,path=entry.path;
+ var prox=new Proxy(orig,{
+  apply:function(t,th,args){
+   var id=++state.uid,t0=performance.now();
+   logEvent({type:'call',path:path,id:id,args:args});
+   var r;
+   try{r=Reflect.apply(t,th,args)}
+   catch(err){logEvent({type:'error',path:path,id:id,err:err,dur:performance.now()-t0});throw err}
+   if(r&&typeof r.then==='function'){
+    return r.then(
+     function(v){logEvent({type:'resolve',path:path,id:id,val:v,dur:performance.now()-t0});return v},
+     function(e){logEvent({type:'error',path:path,id:id,err:e,dur:performance.now()-t0});throw e}
+    );
+   }
+   logEvent({type:'return',path:path,id:id,val:r,dur:performance.now()-t0});
+   return r;
+  },
+  construct:function(t,args,nt){
+   var id=++state.uid,t0=performance.now();
+   logEvent({type:'call',path:'new '+path,id:id,args:args});
+   try{
+    var r=Reflect.construct(t,args,nt);
+    logEvent({type:'return',path:'new '+path,id:id,val:r,dur:performance.now()-t0});
+    return r;
+   }catch(e){logEvent({type:'error',path:'new '+path,id:id,err:e,dur:performance.now()-t0});throw e}
+  }
+ });
+ var loc=resolve(path);
+ if(!loc)return false;
+ try{loc.obj[loc.key]=prox}catch(e){return false}
+ if(loc.obj[loc.key]!==prox)return false;
+ entry.wrapped=prox;
+ entry.orig=orig;
+ return true;
+}
+function deactivate(entry){
+ if(!entry.wrapped)return;
+ var loc=resolve(entry.path);
+ if(!loc)return;
+ try{loc.obj[loc.key]=entry.orig}catch(e){}
+ entry.wrapped=null;
+}
+function restoreAll(){
+ state.fns.forEach(function(f){try{deactivate(f)}catch(e){}});
+}
+
+function renderList(){
+ var q=($('q').value||'').toLowerCase();
+ var box=$('list');box.textContent='';
+ var arr=state.fns.filter(function(f){return !q||f.path.toLowerCase().indexOf(q)>-1});
+ var cap=arr.slice(0,400);
+ if(!arr.length){box.innerHTML='<div class="empty">Sin resultados.</div>';return}
+ var frag=document.createDocumentFragment();
+ cap.forEach(function(f){
+  var row=document.createElement('div');
+  row.className='row'+(state.sel===f?' sel':'');
+  var pw=document.createElement('button');
+  pw.className='pw'+(f.wrapped?' on':'');
+  pw.textContent=f.wrapped?'●':'○';
+  pw.title='Activar / desactivar depuración';
+  pw.onclick=function(ev){
+   ev.stopPropagation();
+   if(f.wrapped){deactivate(f)}else{if(!activate(f)){alert('No se pudo instrumentar '+f.path)}};
+   renderList();renderDetail();
+  };
+  var nm=document.createElement('span');
+  nm.className='nm';nm.textContent=f.label;
+  nm.title=f.path;
+  row.appendChild(pw);row.appendChild(nm);
+  if(f.path.indexOf('.')>-1){
+   var g=document.createElement('span');g.className='src';g.textContent=f.group;row.appendChild(g);
+  }
+  row.onclick=function(){
+   state.sel=f;
+   setTab('code');
+   renderList();renderDetail();
+  };
+  frag.appendChild(row);
+ });
+ box.appendChild(frag);
+ if(arr.length>400){
+  var m=document.createElement('div');m.className='empty';m.textContent='Mostrando 400 de '+arr.length+'… refina la búsqueda.';
+  box.appendChild(m);
+ }
+}
+
+var HELP={
+ fetch:{d:'Hace una petición HTTP y devuelve una Promise que resuelve con la respuesta.',u:'https://developer.mozilla.org/es/docs/Web/API/fetch'},
+ setTimeout:{d:'Ejecuta una función una vez tras un retardo (ms). Devuelve un id para cancelarlo con clearTimeout.',u:'https://developer.mozilla.org/es/docs/Web/API/setTimeout'},
+ setInterval:{d:'Ejecuta una función repetidamente cada N ms. Se cancela con clearInterval.',u:'https://developer.mozilla.org/es/docs/Web/API/setInterval'},
+ requestAnimationFrame:{d:'Ejecuta el callback antes del siguiente repintado (~60 fps). Ideal para animaciones.',u:'https://developer.mozilla.org/es/docs/Web/API/Window/requestAnimationFrame'},
+ addEventListener:{d:'Registra un escucha de eventos sobre un EventTarget (elemento, window, document…).',u:'https://developer.mozilla.org/es/docs/Web/API/EventTarget/addEventListener'},
+ querySelector:{d:'Devuelve el primer elemento que coincide con un selector CSS, o null.',u:'https://developer.mozilla.org/es/docs/Web/API/Document/querySelector'},
+ querySelectorAll:{d:'Devuelve una NodeList estática con todos los elementos que coinciden con el selector.',u:'https://developer.mozilla.org/es/docs/Web/API/Document/querySelectorAll'},
+ alert:{d:'Muestra un diálogo modal con un mensaje. Bloquea el hilo principal.',u:'https://developer.mozilla.org/es/docs/Web/API/Window/alert'},
+ console:{d:'Objeto con utilidades de registro: log, warn, error, table, time…',u:'https://developer.mozilla.org/es/docs/Web/API/console'},
+ JSON:{d:'Objeto con parse() y stringify() para convertir a/desde texto JSON.',u:'https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/JSON'},
+ Promise:{d:'Representa el resultado futuro de una operación asíncrona.',u:'https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/Promise'},
+ Object:{d:'Constructor base de objetos. keys(), values(), assign(), create(), defineProperty()…',u:'https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/Object'},
+ Array:{d:'Constructor de arrays. from(), isArray(), of()… Los métodos viven en Array.prototype.',u:'https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/Array'},
+ map:{d:'Crea un nuevo array aplicando una función a cada elemento.',u:'https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/Array/map'},
+ filter:{d:'Crea un nuevo array con los elementos que cumplen la condición.',u:'https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/Array/filter'},
+ reduce:{d:'Reduce el array a un único valor acumulando resultados.',u:'https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce'},
+ forEach:{d:'Ejecuta una función por cada elemento. No devuelve nada.',u:'https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach'},
+ then:{d:'Registra callbacks de éxito/error sobre una Promise.',u:'https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/Promise/then'},
+ parse:{d:'Convierte una cadena JSON en un objeto JavaScript. Lanza SyntaxError si es inválida.',u:'https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse'},
+ stringify:{d:'Convierte un valor JavaScript en una cadena JSON.',u:'https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify'},
+ localStorage:{d:'Almacén clave-valor persistente en el navegador (sin caducidad).',u:'https://developer.mozilla.org/es/docs/Web/API/Window/localStorage'},
+ sessionStorage:{d:'Almacén clave-valor limitado a la sesión de la pestaña.',u:'https://developer.mozilla.org/es/docs/Web/API/Window/sessionStorage'},
+ open:{d:'Abre una nueva ventana/pestaña con una URL.',u:'https://developer.mozilla.org/es/docs/Web/API/Window/open'},
+ decodeURIComponent:{d:'Decodifica una URI previamente codificada.',u:'https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/decodeURIComponent'},
+ encodeURIComponent:{d:'Codifica un componente de URI escapando caracteres especiales.',u:'https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent'}
+};
+
+function analyze(f){
+ var src=srcOf(f.fn);
+ var out=[];
+ var isC=isClass(f.fn),nat=isNative(f.fn);
+ var body=src.replace(/^\s*(async\s+)?function\s*\*?\s*[\w$]*\s*/,'').replace(/^\s*class\s+[\w$]*\s*/,'');
+ var features=[];
+ if(/^\s*async\b/.test(src)||/\basync\s/.test(src.slice(0,60)))features.push(['async','g']);
+ if(/^\s*function\s*\*/.test(src)||/\bfunction\s*\*/.test(src.slice(0,80)))features.push(['generador','g']);
+ if(/^\s*class[\s{]/.test(src))features.push(['clase','g']);
+ if(/=>/.test(src))features.push(['arrow','']);
+ if(/\[native code\]/.test(src))features.push(['nativa','y']);
+ if(/\bawait\b/.test(body))features.push(['usa await','y']);
+ if(/\byield\b/.test(body))features.push(['usa yield','y']);
+ if(/\bthis\b/.test(body))features.push(['usa this','']);
+ if(/\breturn\b/.test(body))features.push(['retorna valor','g']);
+ if(/\bthrow\b/.test(body))features.push(['lanza errores','r']);
+ if(/\btry\b/.test(body))features.push(['try/catch','g']);
+ if(/\bfor\b|\bwhile\b|\bdo\b/.test(body))features.push(['bucles','']);
+ if(/\.(map|filter|reduce|forEach|some|every)\(/.test(body))features.push(['iteradores','']);
+ if(/document\.|querySelector|getElementById|innerHTML/.test(body))features.push(['DOM','']);
+ if(/fetch\(|XMLHttpRequest|axios|\.ajax\(/.test(body))features.push(['red','y']);
+ if(/localStorage|sessionStorage|indexedDB|document\.cookie/.test(body))features.push(['almacenamiento','y']);
+ if(/addEventListener|removeEventListener|onclick|dispatchEvent/.test(body))features.push(['eventos','']);
+ if(/setTimeout|setInterval|requestAnimationFrame/.test(body))features.push(['temporizadores','y']);
+ if(/new\s+Promise|\.then\(|async/.test(body))features.push(['asíncrona','y']);
+ if(/eval\(|new Function/.test(body))features.push(['eval','r']);
+ if(/innerHTML|outerHTML|insertAdjacentHTML/.test(body))features.push(['html dinámico','r']);
+ if(/\.value\b|\.innerText|\.textContent/.test(body))features.push(['lee/escribe texto','']);
+
+ var calls={};
+ (body.match(/\b([A-Za-z_$][\w$]*)\s*\(/g)||[]).forEach(function(s){
+  var n=s.replace(/\s*\($/,'');
+  if(['if','for','while','switch','catch','function','return','typeof','new','do','else','with','of','in'].indexOf(n)>-1)return;
+  calls[n]=(calls[n]||0)+1;
+ });
+ var callList=Object.keys(calls).sort(function(a,b){return calls[b]-calls[a]});
+
+ var name=f.fn.name||f.label;
+ var recursive=name&&new RegExp('\\b'+name.replace(/[$]/g,'\\$')+'\\s*\\(').test(body);
+
+ out.push('<div class="h">Identidad</div>');
+ out.push(kv('Nombre',esc(name||'(anónima)')));
+ out.push(kv('Ruta global',esc(f.path)));
+ out.push(kv('Tipo',isC?'clase (constructor)':nat?'nativa del navegador':/=>/.test(src)?'arrow function':'función clásica'));
+ out.push(kv('Parámetros',(paramsOf(src).length||f.fn.length)+' — '+(paramsOf(src).join(', ')||'ninguno')));
+ out.push(kv('Longitud declarada (length)',f.fn.length));
+ out.push(kv('Devuelve Promise',/^\s*async\b/.test(src)||/\bnew\s+Promise\b/.test(body)?'sí (probable)':'no detectado'));
+ if(recursive)out.push(kv('Recursiva','sí — se llama a sí misma'));
+
+ out.push('<div class="h">Rasgos detectados</div>');
+ out.push('<div>'+(features.length?features.map(function(x){return'<span class="tag '+(x[1]||'')+'">'+x[0]+'</span>'}).join(''):'<span class="tag">sin rasgos destacables</span>')+'</div>');
+
+ out.push('<div class="h">Complejidad aproximada</div>');
+ var lines=src.split('\n').length;
+ var branches=(body.match(/\bif\b|\belse\b|\bcase\b|\?|\&\&|\|\|/g)||[]).length;
+ var level=branches<5?'baja':branches<15?'media':branches<30?'alta':'muy alta';
+ out.push(kv('Líneas de código',lines));
+ out.push(kv('Puntos de decisión',branches));
+ out.push(kv('Complejidad estimada','<b>'+level+'</b>'));
+
+ if(callList.length){
+  out.push('<div class="h">Funciones que invoca</div>');
+  out.push('<div>'+callList.slice(0,30).map(function(n){return'<span class="tag">'+esc(n)+' ×'+calls[n]+'</span>'}).join('')+'</div>');
+ }
+
+ out.push('<div class="h">Interpretación</div>');
+ var interp=[];
+ if(nat)interp.push('Es una función <b>nativa</b> implementada por el motor del navegador: no puedes ver su código real y su rendimiento está optimizado en C++.');
+ else if(isC)interp.push('Es una <b>clase</b>: se usa con <span class="mono">new</span> y sirve como plantilla para crear objetos con estado y métodos.');
+ else if(/=>/.test(src))interp.push('Es una <b>arrow function</b>: no tiene su propio <span class="mono">this</span>, hereda el del contexto donde fue definida.');
+ else interp.push('Es una <b>función</b> con su propio <span class="mono">this</span>, que depende de cómo se invoque.');
+ if(/usa await/.test(features.map(function(x){return x[0]}).join(' '))||/^async/.test(src))interp.push('Es <b>asíncrona</b>: devuelve una Promise y puede pausar su ejecución en los <span class="mono">await</span>. Al depurarla verás el resultado en dos fases (llamada y resolución).');
+ if(recursive)interp.push('Se <b>llama a sí misma</b>: cuidado con casos base ausentes, puede provocar desbordamiento de pila.');
+ if(/\bthrow\b/.test(body))interp.push('Puede <b>lanzar errores</b>: envuélvela en try/catch si la llamas tú.');
+ if(/DOM/.test(features.map(function(x){return x[0]}).join(' ')))interp.push('Toca el <b>DOM</b>: sus efectos se ven en la página, no solo en los valores devueltos.');
+ if(/red/.test(features.map(function(x){return x[0]}).join(' ')))interp.push('Hace <b>peticiones de red</b>: revisa también la pestaña Network de DevTools.');
+ if(!body.trim())interp.push('El cuerpo no es inspeccionable desde aquí.');
+ out.push('<div style="color:#a9b6cc">'+interp.join('<br><br>')+'</div>');
+
+ return out.join('');
+}
+function kv(k,v){return'<div class="kv"><b>'+k+'</b><span>'+v+'</span></div>'}
+
+function renderDetail(){
+ var f=state.sel;
+ var code=$('code'),an=$('an'),help=$('help'),notes=$('notes');
+ if(!f){
+  var e='<div class="empty">Selecciona una función en la pestaña <b>Funciones</b> para inspeccionarla.<br><br>Pulsa ○ para activar la depuración y ✕ el marcador para salir.</div>';
+  code.innerHTML=e;an.innerHTML=e;help.innerHTML=e;notes.innerHTML=e;return;
+ }
+
+ var src=srcOf(f.fn);
+ code.innerHTML=
+  '<div class="h">'+esc(f.path)+(f.wrapped?' <span class="tag g">depurando</span>':'')+'</div>'+
+  '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">'+
+   '<button class="btn '+(f.wrapped?'on':'p')+'" id="tgl">'+(f.wrapped?'Desactivar depuración':'Activar depuración')+'</button>'+
+   '<button class="btn" id="cp">Copiar código</button>'+
+   '<button class="btn" id="go">Ver en consola</button>'+
+  '</div>'+
+  '<pre class="code">'+esc(src)+'</pre>';
+
+ an.innerHTML=analyze(f);
+
+ var h=HELP[f.fn.name]||HELP[f.label];
+ var native=isNative(f.fn);
+ help.innerHTML=
+  '<div class="h">Ayuda de esta función</div>'+
+  (h?'<div class="kv"><b>Qué hace</b><span>'+h.d+'</span></div>':'')+
+  (native?'<div class="kv"><b>Origen</b><span>Implementada por el navegador (código nativo).</span></div>':'<div class="kv"><b>Origen</b><span>Definida por la propia página.</span></div>')+
+  '<div class="h">Recursos</div>'+
+  '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
+   (h&&h.u?'<a class="btn" target="_blank" rel="noopener" href="'+h.u+'">Documentación MDN</a>':'')+
+   '<a class="btn" target="_blank" rel="noopener" href="https://developer.mozilla.org/es/search?q='+encodeURIComponent(f.fn.name||f.label)+'">Buscar en MDN</a>'+
+   '<a class="btn" target="_blank" rel="noopener" href="https://www.google.com/search?q='+encodeURIComponent((f.fn.name||f.label)+' javascript función')+'">Buscar en Google</a>'+
+  '</div>'+
+  '<div class="h">Cómo depurarla aquí</div>'+
+  '<div style="color:#a9b6cc;line-height:1.8">1. Pulsa <b>Activar depuración</b> en la pestaña Código.<br>'+
+  '2. Usa la página normalmente.<br>'+
+  '3. Mira la pestaña <b>Logs</b>: verás cada llamada con sus argumentos, el valor devuelto, errores y duración.<br>'+
+  '4. Activa <b>Consola: ON</b> abajo para volcar todo también a la consola real (objetos expandibles).<br>'+
+  '5. Vuelve a pulsar el marcador o <b>Restaurar todo</b> para dejar la página intacta.</div>'+
+  '<div class="h">Firma reconstruida</div>'+
+  '<pre class="code">'+esc((f.fn.name||f.label)+'('+paramsOf(src).join(', ')+')')+'</pre>';
+
+ notes.innerHTML=
+  '<div class="h">Notas libres para esta función</div>'+
+  '<div style="color:#7b879e;font-size:11.5px;margin-bottom:8px">Se guardan en este navegador (localStorage) asociadas al dominio actual.</div>'+
+  '<textarea class="notes" id="nt" placeholder="Escribe aquí tu interpretación, hipótesis, pendientes…"></textarea>';
+ var ta=$('nt');
+ ta.value=state.notes[f.path]||'';
+ ta.addEventListener('input',function(){
+  state.notes[f.path]=ta.value;
+  try{localStorage.setItem('__dbg_notes__',JSON.stringify(state.notes))}catch(e){}
+ });
+
+ var tgl=$('tgl');
+ if(tgl)tgl.onclick=function(){
+  if(f.wrapped)deactivate(f);
+  else if(!activate(f))alert('No se pudo instrumentar '+f.path+'\n(propiedad no configurable o protegida)');
+  renderList();renderDetail();
+ };
+ var cp=$('cp');
+ if(cp)cp.onclick=function(){
+  try{navigator.clipboard.writeText(src);cp.textContent='¡Copiado!'}catch(e){cp.textContent='No disponible'}
+  setTimeout(function(){cp.textContent='Copiar código'},1200);
+ };
+ var go=$('go');
+ if(go)go.onclick=function(){try{console.log('%c'+f.path,'color:#6ea8ff;font-weight:bold',f.fn)}catch(e){}};
+}
+
+function renderLogs(){
+ var box=$('logs');
+ var q=($('lq').value||'').toLowerCase();
+ box.textContent='';
+ var arr=state.logs.filter(function(l){return !q||l.path.toLowerCase().indexOf(q)>-1});
+ if(!arr.length){box.innerHTML='<div class="empty">Sin registros todavía.<br>Activa la depuración de alguna función y usa la página.</div>';return}
+ var frag=document.createDocumentFragment();
+ for(var i=arr.length-1;i>=0&&i>arr.length-301;i--){
+  var l=arr[i];
+  var d=document.createElement('div');
+  var cls=l.type==='error'?'err':l.type==='return'?'ret':l.type==='resolve'?'res':'call';
+  d.className='log '+cls;
+  var ic=l.type==='call'?'→':l.type==='error'?'✗':'✓';
+  var t1='<div class="t1"><span class="fn">'+esc(l.path)+'</span><span class="du">'+(l.dur!=null?l.dur.toFixed(1)+' ms':'')+'</span></div>';
+  var t2='';
+  if(l.type==='call')t2='<div class="t2">'+esc(l.args.map(function(a){return preview(a)}).join(', '))+'</div>';
+  else if(l.type==='return'||l.type==='resolve')t2='<div class="t2">↩ '+esc(preview(l.val))+'</div>';
+  else t2='<div class="t2" style="color:#ff9aa5">'+esc(l.err&&l.err.message||String(l.err))+'</div>';
+  var t3='<div class="t3">'+esc(
+    l.type==='call'?'argumentos:\n'+l.args.map(function(a,i){return'  ['+i+'] '+preview(a,0)}).join('\n')
+    :l.type==='error'?(l.err&&l.err.stack||String(l.err))
+    :'valor devuelto:\n  '+preview(l.val,0)
+  )+'</div>';
+  d.innerHTML='<span class="ic">'+ic+'</span><div class="bd">'+t1+t2+t3+'</div>';
+  d.onclick=function(){this.classList.toggle('open')};
+  frag.appendChild(d);
+ }
+ box.appendChild(frag);
+}
+
+var activeTab='list';
+function setTab(t){
+ activeTab=t;
+ Array.prototype.forEach.call(sh.querySelectorAll('.tab'),function(b){b.classList.toggle('on',b.dataset.t===t)});
+ Array.prototype.forEach.call(sh.querySelectorAll('.pane'),function(p){p.classList.toggle('on',p.dataset.p===t)});
+ if(t==='list')renderList();
+ if(t==='logs')renderLogs();
+}
+
+$('tabs').addEventListener('click',function(e){
+ var b=e.target.closest('.tab');if(b)setTab(b.dataset.t);
+});
+$('q').addEventListener('input',renderList);
+$('lq').addEventListener('input',renderLogs);
+$('deep').addEventListener('change',function(){state.deep=this.checked;state.fns=scan();renderList();updateCount()});
+$('lclr').onclick=function(){state.logs=[];renderLogs()};
+$('scan').onclick=function(){restoreAll();state.fns=scan();renderList();updateCount();renderDetail()};
+$('rest').onclick=function(){restoreAll();renderList();renderDetail();console.log('Todas las funciones restauradas.')};
+$('cons').onclick=function(){state.toConsole=!state.toConsole;this.textContent='Consola: '+(state.toConsole?'ON':'OFF');this.classList.toggle('on',state.toConsole)};
+$('cls').onclick=function(){window.__DBG.destroy()};
+
+function updateCount(){
+ var on=state.fns.filter(function(f){return f.wrapped}).length;
+ $('cnt').textContent=state.fns.length+(on?' · '+on+' activas':'');
+}
+
+$('min').onclick=function(){
+ P.classList.toggle('min');
+ this.textContent=P.classList.contains('min')?'▢':'—';
+ if(!P.classList.contains('min'))renderList();
+};
+
+var drag=false,dx=0,dy=0,hdr=$('hdr');
+hdr.addEventListener('pointerdown',function(e){
+ if(e.target.closest('button'))return;
+ if(P.classList.contains('min'))return;
+ if(window.matchMedia('(max-width:640px)').matches)return;
+ var r=P.getBoundingClientRect();
+ P.style.left=r.left+'px';P.style.top=r.top+'px';P.style.right='auto';P.style.bottom='auto';
+ drag=true;dx=e.clientX-r.left;dy=e.clientY-r.top;
+ hdr.setPointerCapture(e.pointerId);
+});
+hdr.addEventListener('pointermove',function(e){
+ if(!drag)return;
+ var x=Math.max(4,Math.min(window.innerWidth-80,e.clientX-dx));
+ var y=Math.max(4,Math.min(window.innerHeight-40,e.clientY-dy));
+ P.style.left=x+'px';P.style.top=y+'px';
+});
+hdr.addEventListener('pointerup',function(){drag=false});
+
+state.fns=scan();
+renderList();renderDetail();updateCount();renderLogs();
+
+window.__DBG={
+ toggle:function(){if(P.classList.contains('min')){$('min').click()}else{sh.host.style.display=sh.host.style.display==='none'?'':'none'}},
+ destroy:function(){restoreAll();HOST.remove();delete window.__DBG},
+ restore:restoreAll,
+ open:function(){HOST.style.display=''},
+ close:function(){HOST.style.display='none'}
+};
+
+console.log('%c🐞 Depurador de funciones activo','color:#3ddc84;font-weight:bold','— '+state.fns.length+' funciones detectadas');
+})();
